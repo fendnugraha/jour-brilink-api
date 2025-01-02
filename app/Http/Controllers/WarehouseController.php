@@ -3,8 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Warehouse;
-use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ChartOfAccountResource;
 
 class WarehouseController extends Controller
 {
@@ -13,7 +14,8 @@ class WarehouseController extends Controller
      */
     public function index()
     {
-        //
+        $warehouses = Warehouse::with('ChartOfAccount')->paginate(5);
+        return new ChartOfAccountResource($warehouses, true, "Successfully fetched warehouses");
     }
 
     /**
