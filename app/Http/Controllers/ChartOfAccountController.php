@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use App\Models\Journal;
+use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use App\Models\ChartOfAccount;
-use App\Http\Resources\ChartOfAccountResource;
 use Illuminate\Support\Facades\Log;
+use App\Http\Resources\ChartOfAccountResource;
 
 class ChartOfAccountController extends Controller
 {
@@ -259,6 +260,28 @@ class ChartOfAccountController extends Controller
             'success' => true,
             'message' => 'Successfully fetched profit and loss',
             'data' => $profitLoss
+        ]);
+    }
+
+    public function addCashAndBankToWarehouse($warehouse, $id)
+    {
+        $chartOfAccount = ChartOfAccount::find($id);
+
+        if (!$warehouse || !$chartOfAccount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Warehouse or chart of account not found'
+            ], 404);
+        }
+        $updateValue = $chartOfAccount->warehouse_id ? null : $warehouse;
+        $chartOfAccount->update(['warehouse_id' => $updateValue]);
+
+        $message = $chartOfAccount->warehouse_id ? 'Cash and bank account added to warehouse' : 'Cash and bank account removed from warehouse';
+
+        return response()->json([
+            'success' => true,
+            'message' => $message,
+            'data' => $chartOfAccount
         ]);
     }
 }

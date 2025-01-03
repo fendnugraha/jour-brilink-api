@@ -15,6 +15,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-cash-and-bank', [ChartOfAccountController::class, 'getCashAndBank']);
     Route::apiResource('category-accounts', AccountController::class);
     Route::delete('delete-selected-account', [ChartOfAccountController::class, 'deleteAll']);
+    Route::put('warehouse/{warehouse}/add-cash-bank/{id}', [ChartOfAccountController::class, 'addCashAndBankToWarehouse']);
 
     Route::apiResource('warehouse', WarehouseController::class);
 });
