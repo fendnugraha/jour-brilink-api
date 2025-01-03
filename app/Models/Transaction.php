@@ -39,13 +39,8 @@ class Transaction extends Model
         return time() . '-' . $prefix . '-' . $user_id . '-' . strtoupper(uniqid(rand() + time(), false));
     }
 
-    public function payable()
+    public function finance()
     {
-        return $this->belongsTo(Payable::class, 'invoice', 'invoice');
-    }
-
-    public function receivable()
-    {
-        return $this->belongsTo(Receivable::class, 'invoice', 'invoice');
+        return $this->belongsTo(Finance::class, 'invoice', 'invoice');
     }
 }

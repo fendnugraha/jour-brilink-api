@@ -198,7 +198,7 @@ class ChartOfAccountController extends Controller
 
     public function getCashAndBank()
     {
-        $chartOfAccounts = ChartOfAccount::whereIn('account_id', [1, 2])->get();
+        $chartOfAccounts = ChartOfAccount::with('warehouse')->whereIn('account_id', [1, 2])->orderBy('acc_code', 'asc')->get();
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
