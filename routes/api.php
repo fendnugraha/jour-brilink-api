@@ -2,7 +2,9 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\AccountController;
+use App\Http\Controllers\ContactController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\ChartOfAccountController;
@@ -10,8 +12,10 @@ use App\Http\Controllers\ProductCategoryController;
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/user', function (Request $request) {
-        return $request->user();
+        return $request->user()->load('role.warehouse');
     });
+
+    Route::apiResource('users', UserController::class);
 
     Route::apiResource('accounts', ChartOfAccountController::class);
     Route::get('get-cash-and-bank', [ChartOfAccountController::class, 'getCashAndBank']);
@@ -21,6 +25,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::apiResource('products', ProductController::class);
     Route::apiResource('product-categories', ProductCategoryController::class);
+
+    Route::apiResource('contacts', ContactController::class);
 
     Route::apiResource('warehouse', WarehouseController::class);
 });
