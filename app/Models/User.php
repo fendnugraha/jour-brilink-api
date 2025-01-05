@@ -50,7 +50,7 @@ class User extends Authenticatable
 
     public function warehouse()
     {
-        return $this->hasOne(Warehouse::class);
+        return $this->belongsTo(Warehouse::class);
     }
 
     public function role()

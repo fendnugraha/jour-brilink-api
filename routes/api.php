@@ -36,5 +36,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-all-warehouses', [WarehouseController::class, 'getAllWarehouses']);
 
     //journals
+    Route::apiResource('journals', JournalController::class);
     Route::post('create-transfer', [JournalController::class, 'createTransfer']);
 });

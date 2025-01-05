@@ -6,6 +6,7 @@ use App\Models\Journal;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use App\Http\Resources\AccountResource;
 
 class JournalController extends Controller
 {
@@ -14,7 +15,8 @@ class JournalController extends Controller
      */
     public function index()
     {
-        //
+        $journals = Journal::with(['debt', 'cred'])->orderBy('created_at', 'desc')->paginate(10, ['*'], 'journalPage')->onEachSide(0)->withQueryString();
+        return new AccountResource($journals, true, "Successfully fetched journals");
     }
 
     /**
@@ -81,7 +83,7 @@ class JournalController extends Controller
         try {
             $journal->create([
                 'invoice' => $journal->invoice_journal(),  // Menggunakan metode statis untuk invoice
-                'date_issued' => $request->date_issued,
+                'date_issued' => now(),
                 'debt_code' => $request->debt_code,
                 'cred_code' => $request->cred_code,
                 'amount' => $request->amount,
@@ -89,7 +91,7 @@ class JournalController extends Controller
                 'trx_type' => 'Transfer Uang',
                 'description' => $description,
                 'user_id' => auth()->user()->id,
-                'warehouse_id' => auth()->user()->role()->warehouse_id
+                'warehouse_id' => auth()->user()->role->warehouse_id
             ]);
 
             DB::commit();

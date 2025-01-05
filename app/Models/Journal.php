@@ -62,12 +62,12 @@ class Journal extends Model
 
     public function debt()
     {
-        return $this->belongsTo(ChartOfAccount::class);
+        return $this->belongsTo(ChartOfAccount::class, 'debt_code', 'id');
     }
 
     public function cred()
     {
-        return $this->belongsTo(ChartOfAccount::class);
+        return $this->belongsTo(ChartOfAccount::class, 'cred_code', 'id');
     }
 
     public function user()
