@@ -62,12 +62,12 @@ class Journal extends Model
 
     public function debt()
     {
-        return $this->belongsTo(ChartOfAccount::class, 'debt_code', 'acc_code');
+        return $this->belongsTo(ChartOfAccount::class);
     }
 
     public function cred()
     {
-        return $this->belongsTo(ChartOfAccount::class, 'cred_code', 'acc_code');
+        return $this->belongsTo(ChartOfAccount::class);
     }
 
     public function user()
@@ -239,15 +239,5 @@ class Journal extends Model
         $result = $cashAccount->whereIn('account_id', [1, 2])->sum('balance');
 
         return $result;
-    }
-
-    public function payable()
-    {
-        return $this->belongsTo(Payable::class, 'invoice', 'invoice');
-    }
-
-    public function receivable()
-    {
-        return $this->belongsTo(Receivable::class, 'invoice', 'invoice');
     }
 }

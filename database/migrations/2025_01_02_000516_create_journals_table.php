@@ -18,8 +18,8 @@ return new class extends Migration
             // Kolom invoice yang berelasi dengan tabel lain
             $table->string('invoice', 60)->index();
             $table->string('description', 160);
-            $table->string('debt_code', 60)->index();
-            $table->string('cred_code', 60)->index();
+            $table->foreignId('debt_code', 60)->index();
+            $table->foreignId('cred_code', 60)->index();
             $table->integer('amount');
             $table->integer('fee_amount');
             $table->integer('status')->default(1);
@@ -39,24 +39,14 @@ return new class extends Migration
 
             // Menambahkan foreign key untuk invoice yang berelasi dengan 3 tabel: receivables, payables, sales
             $table->foreign('invoice')
-                ->references('invoice')->on('receivables')
+                ->references('invoice')->on('finances')
                 ->onDelete('restrict')
-                ->name('journals_receivables_invoice_foreign'); // Nama constraint unik
+                ->name('journals_finances_invoice_foreign'); // Nama constraint unik
 
             $table->foreign('invoice')
-                ->references('invoice')->on('payables')
+                ->references('invoice')->on('transactions')
                 ->onDelete('restrict')
-                ->name('journals_payables_invoice_foreign'); // Nama constraint unik
-
-            $table->foreign('invoice')
-                ->references('invoice')->on('sales')
-                ->onDelete('restrict')
-                ->name('journals_sales_invoice_foreign'); // Nama constraint unik
-
-            $table->foreign('invoice')
-                ->references('invoice')->on('purchases')
-                ->onDelete('restrict')
-                ->name('journals_purchases_invoice_foreign');
+                ->name('journals_transactions_invoice_foreign'); // Nama constraint unik
 
             $table->timestamps();
         });

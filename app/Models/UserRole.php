@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class UserRole extends Model
 {
+    protected $fillable = ['role', 'warehouse_id'];
+
     public function user()
     {
         return $this->belongsTo(User::class);

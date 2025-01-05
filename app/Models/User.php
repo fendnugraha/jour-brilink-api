@@ -22,6 +22,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'email_verified_at',
     ];
 
     /**
@@ -47,9 +48,9 @@ class User extends Authenticatable
         ];
     }
 
-    public function warehouses()
+    public function warehouse()
     {
-        return $this->hasMany(Warehouse::class);
+        return $this->hasOne(Warehouse::class);
     }
 
     public function role()
@@ -60,5 +61,10 @@ class User extends Authenticatable
     public function transactions()
     {
         return $this->hasMany(Transaction::class);
+    }
+
+    public function journals()
+    {
+        return $this->hasMany(Journal::class);
     }
 }

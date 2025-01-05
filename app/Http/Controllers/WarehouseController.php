@@ -170,4 +170,13 @@ class WarehouseController extends Controller
             ], 500);
         }
     }
+
+    public function getAllWarehouses()
+    {
+        $warehouses = Warehouse::all();
+        return response()->json([
+            'success' => true,
+            'data' => $warehouses
+        ], 200);
+    }
 }

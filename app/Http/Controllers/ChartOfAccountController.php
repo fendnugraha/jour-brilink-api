@@ -167,6 +167,16 @@ class ChartOfAccountController extends Controller
         }
     }
 
+    public function getCashAndBankByWarehouse($warehouse)
+    {
+        $chartOfAccounts = ChartOfAccount::with('warehouse')->where('warehouse_id', $warehouse)->orderBy('acc_code', 'asc')->get();
+        return response()->json([
+            'success' => true,
+            'message' => 'Successfully fetched chart of accounts',
+            'data' => $chartOfAccounts
+        ]);
+    }
+
     public function deleteAll(Request $request)
     {
         // Retrieve the records that are about to be deleted
