@@ -117,4 +117,10 @@ class ProductController extends Controller
             'message' => 'Product deleted successfully'
         ], 200);
     }
+
+    public function getAllProducts()
+    {
+        $products = Product::all();
+        return new AccountResource($products, true, "Successfully fetched products");
+    }
 }

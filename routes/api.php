@@ -29,6 +29,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::apiResource('products', ProductController::class);
     Route::apiResource('product-categories', ProductCategoryController::class);
+    Route::get('get-all-products', [ProductController::class, 'getAllProducts']);
 
     Route::apiResource('contacts', ContactController::class);
 
@@ -38,4 +39,5 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     //journals
     Route::apiResource('journals', JournalController::class);
     Route::post('create-transfer', [JournalController::class, 'createTransfer']);
+    Route::post('create-voucher', [JournalController::class, 'createVoucher']);
 });
