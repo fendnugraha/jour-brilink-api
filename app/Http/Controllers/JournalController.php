@@ -192,7 +192,7 @@ class JournalController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Journal created successfully',
+                'message' => 'Penjualan voucher berhasil, invoice: ' . $invoice,
                 'journal' => $journal
             ], 201);
         } catch (\Exception $e) {
