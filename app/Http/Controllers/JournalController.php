@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
 use App\Models\Transaction;
+use Carbon\Carbon;
 
 class JournalController extends Controller
 {
@@ -293,5 +294,14 @@ class JournalController extends Controller
                 'message' => 'Failed to create journal'
             ], 500);
         }
+    }
+
+    public function getJournalByWarehouse($warehouse, $startDate, $endDate)
+    {
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+
+        $journals = Journal::with(['debt', 'cred'])->where('warehouse_id', $warehouse)->whereBetween('date_issued', [$startDate, $endDate])->orderBy('created_at', 'desc')->get();
+        return new AccountResource($journals, true, "Successfully fetched journals");
     }
 }

@@ -14,6 +14,8 @@ class ChartOfAccountController extends Controller
 {
     public $startDate;
     public $endDate;
+    protected $appends = ['balance'];
+
     /**
      * Display a listing of the resource.
      */
@@ -298,6 +300,33 @@ class ChartOfAccountController extends Controller
     public function getExpenses()
     {
         $chartOfAccounts = ChartOfAccount::whereIn('account_id', range(33, 45))->get();
+        return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
+    }
+
+    public function getCashBankBalance($warehouse)
+    {
+
+        $journal = new Journal();
+        $endDate = Carbon::now()->endOfDay();
+
+        $transactions = $journal->with(['debt', 'cred'])
+            ->selectRaw('debt_code, cred_code, SUM(amount) as total, warehouse_id')
+            ->whereBetween('date_issued', [Carbon::create(0000, 1, 1, 0, 0, 0)->startOfDay(), $endDate])
+            // ->where('warehouse_id', Auth::user()->warehouse_id) // Tambahkan filter di query
+            ->groupBy('debt_code', 'cred_code', 'warehouse_id')
+            ->get();
+
+        $chartOfAccounts = ChartOfAccount::with(['account'])->where('warehouse_id', $warehouse)->get();
+
+        foreach ($chartOfAccounts as $value) {
+            $debit = $transactions->where('debt_code', $value->id)->sum('total');
+            $credit = $transactions->where('cred_code', $value->id)->sum('total');
+
+            $value->balance = ($value->account->status == "D")
+                ? ($value->st_balance + $debit - $credit)
+                : ($value->st_balance + $credit - $debit);
+        }
+
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 }

@@ -27,6 +27,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::put('warehouse/{warehouse}/add-cash-bank/{id}', [ChartOfAccountController::class, 'addCashAndBankToWarehouse']);
     Route::get('get-cash-bank-by-warehouse/{warehouse}', [ChartOfAccountController::class, 'getCashAndBankByWarehouse']);
     Route::get('get-expenses', [ChartOfAccountController::class, 'getExpenses']);
+    Route::get('get-cash-bank-balance/{warehouse}', [ChartOfAccountController::class, 'getCashBankBalance']);
 
     Route::apiResource('products', ProductController::class);
     Route::apiResource('product-categories', ProductCategoryController::class);
@@ -43,4 +44,5 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('create-voucher', [JournalController::class, 'createVoucher']);
     Route::post('create-deposit', [JournalController::class, 'createDeposit']);
     Route::post('create-mutation', [JournalController::class, 'createMutation']);
+    Route::get('get-journal-by-warehouse/{warehouse}/{startDate}/{endDate}', [JournalController::class, 'getJournalByWarehouse']);
 });
