@@ -294,4 +294,10 @@ class ChartOfAccountController extends Controller
             'data' => $chartOfAccount
         ]);
     }
+
+    public function getExpenses()
+    {
+        $chartOfAccounts = ChartOfAccount::whereIn('account_id', range(33, 45))->get();
+        return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
+    }
 }

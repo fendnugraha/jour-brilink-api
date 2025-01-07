@@ -204,4 +204,94 @@ class JournalController extends Controller
             ], 500);
         }
     }
+
+    public function createDeposit(Request $request)
+    {
+        $journal = new Journal();
+        $request->validate([
+            'cost' => 'required|numeric',
+            'price' => 'required|numeric',
+        ]);
+
+        // $modal = $request->modal * $request->qty;
+        $price = $request->price;
+        $cost = $request->cost;
+
+        $description = $request->description ?? "Penjualan Pulsa Dll";
+        $fee = $price - $cost;
+        $invoice = Journal::invoice_journal();
+
+        DB::beginTransaction();
+        try {
+            $journal->create([
+                'invoice' => $invoice,  // Menggunakan metode statis untuk invoice
+                'date_issued' => now(),
+                'debt_code' => 10,
+                'cred_code' => 10,
+                'amount' => $price,
+                'fee_amount' => $fee,
+                'trx_type' => 'Deposit',
+                'description' => $description,
+                'user_id' => auth()->user()->id,
+                'warehouse_id' => auth()->user()->role->warehouse_id
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Penjualan voucher berhasil, invoice: ' . $invoice,
+                'journal' => $journal
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create journal'
+            ], 500);
+        }
+    }
+
+    public function createMutation(Request $request)
+    {
+        $journal = new Journal();
+        $request->validate([
+            'debt_code' => 'required|exists:chart_of_accounts,id',
+            'cred_code' => 'required|exists:chart_of_accounts,id',
+            'amount' => 'required|numeric|min:0',
+            'trx_type' => 'required',
+        ]);
+
+        $description = $request->description ?? 'Mutasi Kas';
+
+        DB::beginTransaction();
+        try {
+            $journal->create([
+                'invoice' => $journal->invoice_journal(),  // Menggunakan metode statis untuk invoice
+                'date_issued' => now(),
+                'debt_code' => $request->debt_code,
+                'cred_code' => $request->cred_code,
+                'amount' => $request->amount,
+                'fee_amount' => $request->fee_amount,
+                'trx_type' => $request->trx_type,
+                'description' => $description,
+                'user_id' => auth()->user()->id,
+                'warehouse_id' => auth()->user()->role->warehouse_id
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Mutasi Kas berhasil',
+                'journal' => $journal
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create journal'
+            ], 500);
+        }
+    }
 }

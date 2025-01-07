@@ -26,6 +26,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::delete('delete-selected-account', [ChartOfAccountController::class, 'deleteAll']);
     Route::put('warehouse/{warehouse}/add-cash-bank/{id}', [ChartOfAccountController::class, 'addCashAndBankToWarehouse']);
     Route::get('get-cash-bank-by-warehouse/{warehouse}', [ChartOfAccountController::class, 'getCashAndBankByWarehouse']);
+    Route::get('get-expenses', [ChartOfAccountController::class, 'getExpenses']);
 
     Route::apiResource('products', ProductController::class);
     Route::apiResource('product-categories', ProductCategoryController::class);
@@ -40,4 +41,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('journals', JournalController::class);
     Route::post('create-transfer', [JournalController::class, 'createTransfer']);
     Route::post('create-voucher', [JournalController::class, 'createVoucher']);
+    Route::post('create-deposit', [JournalController::class, 'createDeposit']);
+    Route::post('create-mutation', [JournalController::class, 'createMutation']);
 });
