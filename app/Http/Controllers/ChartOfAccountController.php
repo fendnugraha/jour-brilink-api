@@ -354,10 +354,9 @@ class ChartOfAccountController extends Controller
         $startDate = Carbon::now()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
 
-        $transactions = $journal->with(['debt', 'cred'])
-            ->selectRaw('debt_code, cred_code, SUM(amount) as total')
-            ->whereBetween('date_issued', [$startDate, $endDate])
-            ->groupBy('debt_code', 'cred_code')
+        $transactions = $journal->whereBetween('date_issued', [$startDate, $endDate])
+            ->where(fn($query) => $warehouse == "" ?
+                $query : $query->where('warehouse_id', $warehouse))
             ->get();
 
         $chartOfAccounts = ChartOfAccount::with(['account'])->where('warehouse_id', $warehouse)->get();
