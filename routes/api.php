@@ -8,6 +8,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\ProductCategoryController;
 
@@ -26,7 +27,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::delete('delete-selected-account', [ChartOfAccountController::class, 'deleteAll']);
     Route::put('warehouse/{warehouse}/add-cash-bank/{id}', [ChartOfAccountController::class, 'addCashAndBankToWarehouse']);
     Route::get('get-cash-bank-by-warehouse/{warehouse}', [ChartOfAccountController::class, 'getCashAndBankByWarehouse']);
-    Route::get('get-expenses', [ChartOfAccountController::class, 'getExpenses']);
+    Route::get('get-expense-accounts', [ChartOfAccountController::class, 'getExpenses']);
     Route::get('get-cash-bank-balance/{warehouse}', [ChartOfAccountController::class, 'getCashBankBalance']);
     Route::get('daily-dashboard/{warehouse}', [ChartOfAccountController::class, 'dailyDashboard']);
 
@@ -46,4 +47,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('create-deposit', [JournalController::class, 'createDeposit']);
     Route::post('create-mutation', [JournalController::class, 'createMutation']);
     Route::get('get-journal-by-warehouse/{warehouse}/{startDate}/{endDate}', [JournalController::class, 'getJournalByWarehouse']);
+    Route::get('get-expenses', [JournalController::class, 'getExpenses']);
+
+    //transactions
+    Route::apiResource('transactions', TransactionController::class);
 });

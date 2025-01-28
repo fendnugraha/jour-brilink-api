@@ -240,7 +240,7 @@ class JournalController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Penjualan voucher berhasil, invoice: ' . $invoice,
+                'message' => 'Penjualan deposit berhasil, invoice: ' . $invoice,
                 'journal' => $journal
             ], 201);
         } catch (\Exception $e) {
@@ -303,5 +303,13 @@ class JournalController extends Controller
 
         $journals = Journal::with(['debt', 'cred'])->where('warehouse_id', $warehouse)->whereBetween('date_issued', [$startDate, $endDate])->orderBy('created_at', 'desc')->get();
         return new AccountResource($journals, true, "Successfully fetched journals");
+    }
+
+    public function getExpenses()
+    {
+        $expenses = Journal::with('warehouse', 'debt')->where('trx_type', 'Pengeluaran')
+            ->orderBy('id', 'desc')
+            ->get();
+        return new AccountResource($expenses, true, "Successfully fetched chart of accounts");
     }
 }
