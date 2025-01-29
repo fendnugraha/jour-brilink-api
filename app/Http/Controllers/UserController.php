@@ -179,7 +179,7 @@ class UserController extends Controller
 
     public function getAllUsers()
     {
-        $users = User::with(['role.warehouse'])->orderBy('name', 'asc')->paginate(10);
+        $users = User::with(['role.warehouse'])->orderBy('name', 'asc')->get();
         return new AccountResource($users, true, "Successfully fetched users");
     }
 

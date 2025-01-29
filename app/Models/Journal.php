@@ -141,7 +141,7 @@ class Journal extends Model
 
     public static function endBalanceBetweenDate($account_code, $start_date, $end_date)
     {
-        $initBalance = ChartOfAccount::where('acc_code', $account_code)->first();
+        $initBalance = ChartOfAccount::with('account')->where('id', $account_code)->first();
 
         $transactions = self::where(function ($query) use ($account_code) {
             $query
@@ -157,7 +157,7 @@ class Journal extends Model
         $debit = $transactions->where('debt_code', $account_code)->sum('amount');
         $credit = $transactions->where('cred_code', $account_code)->sum('amount');
 
-        if ($initBalance->Account->status == "D") {
+        if ($initBalance->account->status == "D") {
             return $initBalance->st_balance + $debit - $credit;
         } else {
             return $initBalance->st_balance + $credit - $debit;
