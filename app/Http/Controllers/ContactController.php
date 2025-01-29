@@ -98,4 +98,10 @@ class ContactController extends Controller
             'message' => 'Contact deleted successfully'
         ]);
     }
+
+    public function getAllContacts()
+    {
+        $contacts = Contact::orderBy('name', 'asc')->get();
+        return new AccountResource($contacts, true, "Successfully fetched contacts");
+    }
 }

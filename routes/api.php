@@ -10,7 +10,9 @@ use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ChartOfAccountController;
+use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Models\Finance;
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/user', function (Request $request) {
@@ -22,6 +24,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::put('users/{user}/update-password', [UserController::class, 'updatePassword']);
 
     Route::apiResource('accounts', ChartOfAccountController::class);
+    Route::get('get-all-accounts', [ChartOfAccountController::class, 'getAllAccounts']);
+    Route::get('get-account-by-account-id', [ChartOfAccountController::class, 'getAccountByAccountId']);
     Route::get('get-cash-and-bank', [ChartOfAccountController::class, 'getCashAndBank']);
     Route::apiResource('category-accounts', AccountController::class);
     Route::delete('delete-selected-account', [ChartOfAccountController::class, 'deleteAll']);
@@ -35,7 +39,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('product-categories', ProductCategoryController::class);
     Route::get('get-all-products', [ProductController::class, 'getAllProducts']);
 
+    //contacts
     Route::apiResource('contacts', ContactController::class);
+    Route::get('get-all-contacts', [ContactController::class, 'getAllContacts']);
 
     Route::apiResource('warehouse', WarehouseController::class);
     Route::get('get-all-warehouses', [WarehouseController::class, 'getAllWarehouses']);
@@ -54,4 +60,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);
+
+    //Finance
+    Route::apiResource('finance', FinanceController::class);
 });

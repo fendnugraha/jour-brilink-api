@@ -386,4 +386,26 @@ class ChartOfAccountController extends Controller
 
         return new ChartOfAccountResource($dailyReport, true, "Successfully fetched chart of accounts");
     }
+
+    public function getAllAccounts()
+    {
+        $chartOfAccounts = ChartOfAccount::with(['account'])->get();
+        return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
+    }
+
+    public function getAccountByAccountId(Request $request)
+    {
+        $accountIds = $request->input('account_ids', []);
+
+        // Ensure it's an array
+        if (!is_array($accountIds)) {
+            $accountIds = explode(',', $accountIds); // Convert comma-separated values into an array
+        }
+
+        $chartOfAccounts = ChartOfAccount::with(['account'])
+            ->whereIn('account_id', $accountIds)
+            ->get();
+
+        return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
+    }
 }
