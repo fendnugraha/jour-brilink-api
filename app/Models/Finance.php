@@ -14,13 +14,20 @@ class Finance extends Model
         return $this->belongsTo(Contact::class);
     }
 
-    public function invoice_finance($contact_id)
+    public function account()
     {
+        return $this->belongsTo(ChartOfAccount::class, 'account_code', 'id');
+    }
+
+    public function invoice_finance($contact_id, $type)
+    {
+        $prefix = $type == 'Payable' ? 'PY' : 'RC';
         $lastInvoice = DB::table('finances')
             ->select(DB::raw('MAX(RIGHT(invoice,7)) AS kd_max'))
             ->where([
                 ['contact_id', $contact_id],
             ])
+            ->where('finance_type', $type)
             ->whereDate('created_at', date('Y-m-d'))
             ->get();
 
@@ -32,6 +39,6 @@ class Finance extends Model
             $kd = "0000001";
         }
 
-        return 'PY.BK.' . date('dmY') . '.' . $contact_id . '.' . $kd;
+        return $prefix . '.BK.' . date('dmY') . '.' . $contact_id . '.' . $kd;
     }
 }

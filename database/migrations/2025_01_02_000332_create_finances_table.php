@@ -21,6 +21,7 @@ return new class extends Migration
             $table->decimal('payment_amount', 15, 2); // Jumlah pembayaran yang diterima, menggunakan decimal
             $table->integer('payment_status'); // Status pembayaran, misalnya: 1 = belum dibayar, 2 = sebagian dibayar, 3 = lunas
             $table->integer('payment_nth'); // Urutan pembayaran (misalnya pembayaran ke-1, ke-2, dll.)
+            $table->string('finance_type')->collect('Payable', 'Receivable');
 
             // Relasi dengan tabel contacts (misalnya kontak pelanggan)
             $table->foreignId('contact_id')->constrained('contacts')->onDelete('restrict');
@@ -28,7 +29,6 @@ return new class extends Migration
 
             // Kolom untuk account_code, yang mengacu pada chart_of_accounts
             $table->string('account_code', 10)->index(); // Mengacu pada akun terkait, diindeks
-            $table->foreign('invoice')->references('invoice')->on('transactions')->onDelete('restrict');
             $table->timestamps();
         });
     }
