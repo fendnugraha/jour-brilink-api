@@ -18,7 +18,7 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::with(['product', 'contact'])->get();
+        $transactions = Transaction::with(['product', 'contact'])->paginate(5);
 
         return new AccountResource($transactions, true, "Successfully fetched transactions");
     }
@@ -47,6 +47,7 @@ class TransactionController extends Controller
         $invoice = Journal::invoice_journal();
 
         DB::beginTransaction();
+        Log::debug('Transaction started');
         try {
             foreach ($request->cart as $item) {
                 $journal = new Journal();
@@ -57,24 +58,24 @@ class TransactionController extends Controller
                 $description = "Penjualan Accessories";
                 $fee = $price - $modal;
 
-                // $journal->create([
-                //     'invoice' => $invoice,  // Menggunakan metode statis untuk invoice
-                //     'date_issued' => now(),
-                //     'debt_code' => 10,
-                //     'cred_code' => 10,
-                //     'amount' => $price,
-                //     'fee_amount' => $fee,
-                //     'trx_type' => 'Accessories',
-                //     'description' => $description,
-                //     'user_id' => auth()->user()->id,
-                //     'warehouse_id' => auth()->user()->role->warehouse_id
-                // ]);
+                $journal->create([
+                    'invoice' => $invoice,  // Menggunakan metode statis untuk invoice
+                    'date_issued' => now(),
+                    'debt_code' => 10,
+                    'cred_code' => 10,
+                    'amount' => $price,
+                    'fee_amount' => $fee,
+                    'trx_type' => 'Accessories',
+                    'description' => $description,
+                    'user_id' => auth()->user()->id,
+                    'warehouse_id' => auth()->user()->role->warehouse_id
+                ]);
 
                 $sale = new Transaction([
                     'date_issued' => now(),
                     'invoice' => $invoice,
                     'product_id' => $item['id'],
-                    'quantity' => $request->transaction_type == 'Purchase' ? $item['quantity'] * -1 : $item['quantity'],
+                    'quantity' => $request->transaction_type == 'Sales' ? $item['quantity'] * -1 : $item['quantity'],
                     'price' => $item['price'],
                     'cost' => $cost,
                     'transaction_type' => $request->transaction_type,
@@ -89,6 +90,7 @@ class TransactionController extends Controller
             }
 
             DB::commit();
+            Log::debug('Transaction committed');
 
             return response()->json([
                 'message' => 'Penjualan accesories berhasil, invoice: ' . $invoice,
@@ -96,6 +98,7 @@ class TransactionController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::debug('Transaction rolled back');
             Log::error($e->getMessage());
             return response()->json([
                 'success' => false,
@@ -138,8 +141,12 @@ class TransactionController extends Controller
 
     public function getTrxVcr()
     {
-        $transactions = Transaction::with('product')->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity*cost) as total_cost, SUM(quantity*price) as total_price, sum((quantity*price - quantity*cost)) as total_fee')
+        $transactions = Transaction::with('product')
+            ->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity*cost) as total_cost, SUM(quantity*price) as total_price, SUM(quantity*price - quantity*cost) as total_fee')
             ->where('invoice', 'like', 'JR.BK%')
+            ->whereHas('product', function ($query) {
+                $query->where('category', 'Voucher & SP');
+            })
             ->groupBy('product_id')
             ->get();
 

@@ -176,7 +176,7 @@ class JournalController extends Controller
                 'date_issued' => now(),
                 'debt_code' => 10,
                 'cred_code' => 10,
-                'amount' => $price,
+                'amount' => $modal,
                 'fee_amount' => $fee,
                 'trx_type' => 'Voucher & SP',
                 'description' => $description,

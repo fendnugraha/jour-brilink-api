@@ -354,9 +354,9 @@ class ChartOfAccountController extends Controller
         $startDate = Carbon::now()->startOfDay();
         $endDate = Carbon::now()->endOfDay();
 
-        $transactions = $journal->whereBetween('date_issued', [$startDate, $endDate])
-            ->where(fn($query) => $warehouse == "" ?
-                $query : $query->where('warehouse_id', $warehouse))
+        $transactions = $journal->selectRaw('debt_code, cred_code, SUM(amount) as total, warehouse_id')
+            ->whereBetween('date_issued', [Carbon::create(0000, 1, 1, 0, 0, 0)->startOfDay(), $endDate])
+            ->groupBy('debt_code', 'cred_code', 'warehouse_id')
             ->get();
 
         $chartOfAccounts = ChartOfAccount::with(['account'])->where('warehouse_id', $warehouse)->get();
@@ -370,18 +370,23 @@ class ChartOfAccountController extends Controller
                 : ($value->st_balance + $credit - $debit);
         }
 
+        $trxForSalesCount = $journal->whereBetween('date_issued', [$startDate, $endDate])
+            ->where(fn($query) => $warehouse == "" ?
+                $query : $query->where('warehouse_id', $warehouse))
+            ->get();
+
         $dailyReport = [
             'totalCash' => $chartOfAccounts->where('account_id', 1)->sum('balance'),
             'totalBank' => $chartOfAccounts->where('account_id', 2)->sum('balance'),
-            'totalTransfer' => $transactions->where('trx_type', 'Transfer Uang')->sum('amount'),
-            'totalCashWithdrawal' => $transactions->where('trx_type', 'Tarik Tunai')->sum('amount'),
-            'totalCashDeposit' => $transactions->where('trx_type', 'Deposit')->sum('amount'),
-            'totalVoucher' => $transactions->where('trx_type', 'Voucher & SP')->sum('amount'),
-            'totalAccessories' => $transactions->where('trx_type', 'Accessories')->sum('amount'),
-            'totalExpense' => $transactions->where('trx_type', 'Pengeluaran')->sum('fee_amount'),
-            'totalFee' => $transactions->where('fee_amount', '>', 0)->sum('fee_amount'),
-            'profit' => $transactions->sum('fee_amount'),
-            'salesCount' => $transactions->whereIn('trx_type', ['Transfer Uang', 'Tarik Tunai', 'Deposit', 'Voucher & SP'])->count(),
+            'totalTransfer' => $trxForSalesCount->where('trx_type', 'Transfer Uang')->sum('amount'),
+            'totalCashWithdrawal' => $trxForSalesCount->where('trx_type', 'Tarik Tunai')->sum('amount'),
+            'totalCashDeposit' => $trxForSalesCount->where('trx_type', 'Deposit')->sum('amount'),
+            'totalVoucher' => $trxForSalesCount->where('trx_type', 'Voucher & SP')->sum('amount'),
+            'totalAccessories' => $trxForSalesCount->where('trx_type', 'Accessories')->sum('amount'),
+            'totalExpense' => $trxForSalesCount->where('trx_type', 'Pengeluaran')->sum('fee_amount'),
+            'totalFee' => $trxForSalesCount->where('fee_amount', '>', 0)->sum('fee_amount'),
+            'profit' => $trxForSalesCount->sum('fee_amount'),
+            'salesCount' => $trxForSalesCount->whereIn('trx_type', ['Transfer Uang', 'Tarik Tunai', 'Deposit', 'Voucher & SP'])->count(),
         ];
 
         return new ChartOfAccountResource($dailyReport, true, "Successfully fetched chart of accounts");
