@@ -60,7 +60,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);
-
+    Route::get('get-trx-vcr', [TransactionController::class, 'getTrxVcr']);
     //Finance
     Route::apiResource('finance', FinanceController::class);
 });

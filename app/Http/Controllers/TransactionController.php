@@ -14,10 +14,7 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::with('product')->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity*cost) as total_cost, SUM(quantity*price) as total_price, sum((quantity*price - quantity*cost)) as total_fee')
-            ->where('invoice', 'like', 'JR.BK%')
-            ->groupBy('product_id')
-            ->get();
+        $transactions = Transaction::with(['product', 'contact'])->get();
 
         return new AccountResource($transactions, true, "Successfully fetched transactions");
     }
@@ -68,5 +65,15 @@ class TransactionController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    public function getTrxVcr()
+    {
+        $transactions = Transaction::with('product')->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity*cost) as total_cost, SUM(quantity*price) as total_price, sum((quantity*price - quantity*cost)) as total_fee')
+            ->where('invoice', 'like', 'JR.BK%')
+            ->groupBy('product_id')
+            ->get();
+
+        return new AccountResource($transactions, true, "Successfully fetched transactions");
     }
 }
