@@ -309,16 +309,31 @@ class JournalController extends Controller
 
     public function getJournalByWarehouse($warehouse, $startDate, $endDate)
     {
+        $chartOfAccounts = ChartOfAccount::where('warehouse_id', $warehouse)->orWhere('id', 10)->pluck('id')->toArray();
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $journals = Journal::with(['debt', 'cred'])->where('warehouse_id', $warehouse)->whereBetween('date_issued', [$startDate, $endDate])->orderBy('created_at', 'desc')->get();
+        $journals = Journal::with(['debt', 'cred'])
+            ->where(function ($query) use ($chartOfAccounts) {
+                $query->whereIn('debt_code', $chartOfAccounts)
+                    ->orWhereIn('cred_code', $chartOfAccounts);
+            })
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return new AccountResource($journals, true, "Successfully fetched journals");
     }
 
-    public function getExpenses()
+    public function getExpenses($warehouse, $startDate, $endDate)
     {
-        $expenses = Journal::with('warehouse', 'debt')->where('trx_type', 'Pengeluaran')
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+
+        $expenses = Journal::with('warehouse', 'debt')
+            ->where('warehouse_id', $warehouse)
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where('trx_type', 'Pengeluaran')
             ->orderBy('id', 'desc')
             ->get();
         return new AccountResource($expenses, true, "Successfully fetched chart of accounts");

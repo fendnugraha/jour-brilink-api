@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
 use App\Models\Journal;
 use App\Models\Product;
 use App\Models\Transaction;
@@ -63,7 +64,7 @@ class TransactionController extends Controller
                     'date_issued' => now(),
                     'debt_code' => 10,
                     'cred_code' => 10,
-                    'amount' => $price,
+                    'amount' => $cost,
                     'fee_amount' => $fee,
                     'trx_type' => 'Accessories',
                     'description' => $description,
@@ -139,14 +140,19 @@ class TransactionController extends Controller
         //
     }
 
-    public function getTrxVcr()
+    public function getTrxVcr($warehouse, $startDate, $endDate)
     {
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+
         $transactions = Transaction::with('product')
             ->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity*cost) as total_cost, SUM(quantity*price) as total_price, SUM(quantity*price - quantity*cost) as total_fee')
             ->where('invoice', 'like', 'JR.BK%')
             ->whereHas('product', function ($query) {
                 $query->where('category', 'Voucher & SP');
             })
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where('warehouse_id', $warehouse)
             ->groupBy('product_id')
             ->get();
 

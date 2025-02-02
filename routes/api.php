@@ -33,7 +33,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-cash-bank-by-warehouse/{warehouse}', [ChartOfAccountController::class, 'getCashAndBankByWarehouse']);
     Route::get('get-expense-accounts', [ChartOfAccountController::class, 'getExpenses']);
     Route::get('get-cash-bank-balance/{warehouse}', [ChartOfAccountController::class, 'getCashBankBalance']);
-    Route::get('daily-dashboard/{warehouse}', [ChartOfAccountController::class, 'dailyDashboard']);
+    Route::get('daily-dashboard/{warehouse}/{startDate}/{endDate}', [ChartOfAccountController::class, 'dailyDashboard']);
 
     Route::apiResource('products', ProductController::class);
     Route::apiResource('product-categories', ProductCategoryController::class);
@@ -53,14 +53,14 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('create-deposit', [JournalController::class, 'createDeposit']);
     Route::post('create-mutation', [JournalController::class, 'createMutation']);
     Route::get('get-journal-by-warehouse/{warehouse}/{startDate}/{endDate}', [JournalController::class, 'getJournalByWarehouse']);
-    Route::get('get-expenses', [JournalController::class, 'getExpenses']);
+    Route::get('get-expenses/{warehouse}/{startDate}/{endDate}', [JournalController::class, 'getExpenses']);
     Route::get('get-warehouse-balance', [JournalController::class, 'getWarehouseBalance']);
     Route::get('get-revenue-report', [JournalController::class, 'getRevenueReport']);
     Route::get('mutation-history', [JournalController::class, 'mutationHistory']);
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);
-    Route::get('get-trx-vcr', [TransactionController::class, 'getTrxVcr']);
+    Route::get('get-trx-vcr/{warehouse}/{startDate}/{endDate}', [TransactionController::class, 'getTrxVcr']);
     //Finance
     Route::apiResource('finance', FinanceController::class);
 });

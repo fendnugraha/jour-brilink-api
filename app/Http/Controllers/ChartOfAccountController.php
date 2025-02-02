@@ -347,15 +347,16 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
-    public function dailyDashboard($warehouse)
+    public function dailyDashboard($warehouse, $startDate, $endDate)
     {
         $journal = new Journal();
 
-        $startDate = Carbon::now()->startOfDay();
-        $endDate = Carbon::now()->endOfDay();
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $transactions = $journal->selectRaw('debt_code, cred_code, SUM(amount) as total, warehouse_id')
             ->whereBetween('date_issued', [Carbon::create(0000, 1, 1, 0, 0, 0)->startOfDay(), $endDate])
+            // ->where('warehouse_id', $warehouse)
             ->groupBy('debt_code', 'cred_code', 'warehouse_id')
             ->get();
 
