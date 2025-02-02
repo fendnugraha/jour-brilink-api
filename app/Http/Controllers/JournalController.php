@@ -354,8 +354,8 @@ class JournalController extends Controller
         $chartOfAccounts = ChartOfAccount::with(['account'])->get();
 
         foreach ($chartOfAccounts as $value) {
-            $debit = $transactions->where('debt_code', $value->acc_code)->sum('total');
-            $credit = $transactions->where('cred_code', $value->acc_code)->sum('total');
+            $debit = $transactions->where('debt_code', $value->id)->sum('total');
+            $credit = $transactions->where('cred_code', $value->id)->sum('total');
 
             // @ts-ignore
             $value->balance = ($value->account->status == "D") ? ($value->st_balance + $debit - $credit) : ($value->st_balance + $credit - $debit);
