@@ -281,12 +281,13 @@ class JournalController extends Controller
         $request->validate([
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:1',
             'trx_type' => 'required',
+            'admin_fee' => 'numeric|min:0',
         ]);
 
         $description = $request->description ?? 'Mutasi Kas';
-
+        $hqCashAccount = Warehouse::find(1)->chart_of_account_id;
         DB::beginTransaction();
         try {
             $journal->create([
@@ -301,6 +302,21 @@ class JournalController extends Controller
                 'user_id' => auth()->user()->id,
                 'warehouse_id' => auth()->user()->role->warehouse_id
             ]);
+
+            if ($request->admin_fee > 0) {
+                $journal->create([
+                    'invoice' => $journal->invoice_journal(),  // Menggunakan metode statis untuk invoice
+                    'date_issued' => now(),
+                    'debt_code' => $hqCashAccount,
+                    'cred_code' => $request->cred_code,
+                    'amount' => $request->admin_fee,
+                    'fee_amount' => -$request->admin_fee,
+                    'trx_type' => 'Pengeluaran',
+                    'description' => $description ?? 'Biaya admin Mutasi Saldo Kas',
+                    'user_id' => auth()->user()->id,
+                    'warehouse_id' => auth()->user()->role->warehouse_id
+                ]);
+            }
 
             DB::commit();
 

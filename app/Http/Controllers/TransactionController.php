@@ -19,7 +19,7 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::with(['product', 'contact'])->paginate(5);
+        $transactions = Transaction::with(['product', 'contact'])->orderBy('created_at', 'desc')->paginate(5);
 
         return new AccountResource($transactions, true, "Successfully fetched transactions");
     }
