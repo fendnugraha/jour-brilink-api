@@ -61,6 +61,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     //transactions
     Route::apiResource('transactions', TransactionController::class);
     Route::get('get-trx-vcr/{warehouse}/{startDate}/{endDate}', [TransactionController::class, 'getTrxVcr']);
+    Route::get('get-trx-by-warehouse/{warehouse}/{startDate}/{endDate}', [TransactionController::class, 'getTrxByWarehouse']);
+
     //Finance
     Route::apiResource('finance', FinanceController::class);
 });

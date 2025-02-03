@@ -7,6 +7,7 @@ use App\Models\Journal;
 use App\Models\Product;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use App\Models\WarehouseStock;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
@@ -14,6 +15,14 @@ use App\Http\Resources\AccountResource;
 
 class TransactionController extends Controller
 {
+    public $startDate;
+    public $endDate;
+
+    public function __construct()
+    {
+        $this->startDate = Carbon::now()->startOfDay();
+        $this->endDate = Carbon::now()->endOfDay();
+    }
     /**
      * Display a listing of the resource.
      */
@@ -41,14 +50,14 @@ class TransactionController extends Controller
             'cart' => 'required|array',
             'transaction_type' => 'required|string',
         ]);
-
+        $warehouseId = auth()->user()->role->warehouse_id;
+        $userId = auth()->user()->id;
 
         // $modal = $this->modal * $this->quantity;
 
         $invoice = Journal::invoice_journal();
 
         DB::beginTransaction();
-        Log::debug('Transaction started');
         try {
             foreach ($request->cart as $item) {
                 $journal = new Journal();
@@ -68,8 +77,8 @@ class TransactionController extends Controller
                     'fee_amount' => $fee,
                     'trx_type' => 'Accessories',
                     'description' => $description,
-                    'user_id' => auth()->user()->id,
-                    'warehouse_id' => auth()->user()->role->warehouse_id
+                    'user_id' => $userId,
+                    'warehouse_id' => $warehouseId
                 ]);
 
                 $sale = new Transaction([
@@ -81,17 +90,39 @@ class TransactionController extends Controller
                     'cost' => $cost,
                     'transaction_type' => $request->transaction_type,
                     'contact_id' => 1,
-                    'warehouse_id' => auth()->user()->role->warehouse_id,
-                    'user_id' => auth()->user()->id
+                    'warehouse_id' => $warehouseId,
+                    'user_id' => $userId
                 ]);
                 $sale->save();
 
+                $product = Product::find($item['id']);
+                $transaction = new Transaction();
+
                 $sold = Product::find($item['id'])->sold + $item['quantity'];
                 Product::find($item['id'])->update(['sold' => $sold]);
+                $product_log = $transaction->where('product_id', $product->id)->sum('quantity');
+                $end_Stock = $product->stock + $product_log;
+                Product::where('id', $product->id)->update([
+                    'end_Stock' => $end_Stock,
+                    'price' => $item['price'],
+                ]);
+
+                $updateWarehouseStock = WarehouseStock::where('warehouse_id', $warehouseId)->where('product_id', $product->id)->first();
+                $updateCurrentStock = $transaction->where('product_id', $product->id)->where('warehouse_id', $warehouseId)->sum('quantity');
+                if ($updateWarehouseStock) {
+                    $updateWarehouseStock->current_stock = $updateCurrentStock;
+                    $updateWarehouseStock->save();
+                } else {
+                    $warehouseStock = new WarehouseStock();
+                    $warehouseStock->warehouse_id = $warehouseId;
+                    $warehouseStock->product_id = $product->id;
+                    $warehouseStock->init_stock = 0;
+                    $warehouseStock->current_stock = $updateCurrentStock;
+                    $warehouseStock->save();
+                }
             }
 
             DB::commit();
-            Log::debug('Transaction committed');
 
             return response()->json([
                 'message' => 'Penjualan accesories berhasil, invoice: ' . $invoice,
@@ -99,7 +130,6 @@ class TransactionController extends Controller
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
-            Log::debug('Transaction rolled back');
             Log::error($e->getMessage());
             return response()->json([
                 'success' => false,
@@ -137,7 +167,52 @@ class TransactionController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $transaction = Transaction::find($id);
+
+        if (!$transaction) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Transaction not found'
+            ], 404);
+        }
+
+        DB::beginTransaction();
+        try {
+            $transaction->delete();
+            $journal = Journal::where('invoice', $transaction->invoice)->first();
+            if ($journal) {
+                $journal->delete();
+            }
+            //Update product stock
+            $product = Product::find($transaction->product_id);
+            $product_log = Transaction::where('product_id', $product->id)->sum('quantity');
+            $end_Stock = $product->stock + $product_log;
+            Product::where('id', $product->id)->update([
+                'end_Stock' => $end_Stock,
+                'sold' => $product->sold + $transaction->quantity
+            ]);
+
+            $updateWarehouseStock = WarehouseStock::where('warehouse_id', $transaction->warehouse_id)->where('product_id', $product->id)->first();
+            if ($updateWarehouseStock) {
+                $updateWarehouseStock->current_stock -= $transaction->quantity;
+                $updateWarehouseStock->save();
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Transaction deleted successfully'
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Flash an error message
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete transaction'
+            ], 500);
+        }
     }
 
     public function getTrxVcr($warehouse, $startDate, $endDate)
@@ -155,6 +230,20 @@ class TransactionController extends Controller
             ->where('warehouse_id', $warehouse)
             ->groupBy('product_id')
             ->get();
+
+        return new AccountResource($transactions, true, "Successfully fetched transactions");
+    }
+
+    public function getTrxByWarehouse($warehouse, $startDate, $endDate)
+    {
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+
+        $transactions = Transaction::with(['product', 'contact'])
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where('warehouse_id', $warehouse)
+            ->orderBy('created_at', 'desc')
+            ->paginate(5);
 
         return new AccountResource($transactions, true, "Successfully fetched transactions");
     }
