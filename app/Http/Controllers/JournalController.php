@@ -54,7 +54,8 @@ class JournalController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $journal = Journal::with(['debt', 'cred'])->find($id);
+        return new AccountResource($journal, true, "Successfully fetched journal");
     }
 
     /**
@@ -70,7 +71,17 @@ class JournalController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $request->validate([
+            'cred_code' => 'required|exists:chart_of_accounts,id',
+            'debt_code' => 'required|exists:chart_of_accounts,id',
+            'amount' => 'required|numeric|min:0',
+            'fee_amount' => 'required|numeric|min:0',
+            'description' => 'max:255',
+        ]);
+
+        $journal = Journal::find($id);
+        $journal->update($request->all());
+        return new AccountResource($journal, true, "Successfully updated journal");
     }
 
     /**
