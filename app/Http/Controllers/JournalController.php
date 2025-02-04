@@ -366,10 +366,10 @@ class JournalController extends Controller
         return new AccountResource($expenses, true, "Successfully fetched chart of accounts");
     }
 
-    public function getWarehouseBalance()
+    public function getWarehouseBalance($endDate)
     {
         $journal = new Journal();
-        $endDate = Carbon::parse($this->endDate)->endOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $transactions = $journal
             ->with('warehouse', 'debt', 'cred')
@@ -411,11 +411,11 @@ class JournalController extends Controller
         ], 200);
     }
 
-    public function getRevenueReport()
+    public function getRevenueReport($startDate, $endDate)
     {
         $journal = new Journal();
-        $startDate = Carbon::parse($this->startDate)->startOfDay();
-        $endDate = Carbon::parse($this->endDate)->endOfDay();
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($startDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $revenue = $journal->with('warehouse')->selectRaw('SUM(amount) as total, warehouse_id, SUM(fee_amount) as sumfee')
             ->whereBetween('date_issued', [$startDate, $endDate])
