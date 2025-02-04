@@ -65,4 +65,5 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     //Finance
     Route::apiResource('finance', FinanceController::class);
+    Route::get('get-finance-by-contact-id/{contactId}', [FinanceController::class, 'getFinanceByContactId']);
 });

@@ -410,6 +410,7 @@ class ChartOfAccountController extends Controller
 
         $chartOfAccounts = ChartOfAccount::with(['account'])
             ->whereIn('account_id', $accountIds)
+            ->orderBy('acc_code')
             ->get();
 
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");

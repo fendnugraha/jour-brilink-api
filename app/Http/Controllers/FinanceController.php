@@ -45,7 +45,7 @@ class FinanceController extends Controller
     {
         $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
         $pay = new Finance();
-        $invoice_number = $pay->invoice_finance($request->contact, $request->type);
+        $invoice_number = $pay->invoice_finance($request->contact_id, $request->type);
 
         $request->validate([
             'amount' => 'required|numeric',
@@ -133,6 +133,55 @@ class FinanceController extends Controller
      */
     public function destroy(string $id)
     {
-        //
+        $finance = Finance::find($id);
+        $invoice = $finance->invoice;
+
+        $checkData = Finance::where('invoice', $invoice)->get();
+        // dd($checkData->count());
+
+        if ($finance->payment_status == 1) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Pembayaran sudah dilakukan'
+            ]);
+        }
+
+
+        if ($finance->payment_status == 0 && $finance->payment_nth == 0 && $checkData->count() > 1) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Sudah terjadi pembayaran'
+            ]);
+        }
+
+        DB::beginTransaction();
+        try {
+            Journal::where('invoice', $invoice)->where('payment_status', $finance->payment_status)->where('payment_nth', $finance->payment_nth)->delete();
+            $finance->delete();
+
+            DB::commit();
+            return response()->json([
+                'status' => true,
+                'message' => 'Payable deleted successfully'
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getFinanceByContactId($contactId)
+    {
+        $finance = Finance::with(['contact', 'account'])
+            ->selectRaw('contact_id, SUM(bill_amount) as tagihan, SUM(payment_amount) as terbayar, SUM(bill_amount) - SUM(payment_amount) as sisa, finance_type, invoice')
+            ->groupBy('contact_id', 'finance_type', 'invoice')
+            ->where('contact_id', $contactId)
+            ->get();
+
+        return new AccountResource($finance, true, "Successfully fetched finances");
     }
 }

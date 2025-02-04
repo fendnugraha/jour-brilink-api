@@ -65,29 +65,31 @@ class TransactionController extends Controller
                 $cost = Product::find($item['id'])->cost;
                 $modal = $cost * $item['quantity'];
 
-                $description = "Penjualan Accessories";
+                $description = $request->transaction_type == 'Sales' ? "Penjualan Accessories" : "Pembelian Accessories";
                 $fee = $price - $modal;
 
-                $journal->create([
-                    'invoice' => $invoice,  // Menggunakan metode statis untuk invoice
-                    'date_issued' => now(),
-                    'debt_code' => 10,
-                    'cred_code' => 10,
-                    'amount' => $cost,
-                    'fee_amount' => $fee,
-                    'trx_type' => 'Accessories',
-                    'description' => $description,
-                    'user_id' => $userId,
-                    'warehouse_id' => $warehouseId
-                ]);
+                if ($request->transaction_type == 'Sales') {
+                    $journal->create([
+                        'invoice' => $invoice,  // Menggunakan metode statis untuk invoice
+                        'date_issued' => now(),
+                        'debt_code' => 10,
+                        'cred_code' => 10,
+                        'amount' => $cost,
+                        'fee_amount' => $fee,
+                        'trx_type' => 'Accessories',
+                        'description' => $description,
+                        'user_id' => $userId,
+                        'warehouse_id' => $warehouseId
+                    ]);
+                }
 
                 $sale = new Transaction([
                     'date_issued' => now(),
                     'invoice' => $invoice,
                     'product_id' => $item['id'],
                     'quantity' => $request->transaction_type == 'Sales' ? $item['quantity'] * -1 : $item['quantity'],
-                    'price' => $item['price'],
-                    'cost' => $cost,
+                    'price' => $request->transaction_type == 'Sales' ? $item['price'] : 0,
+                    'cost' => $request->transaction_type == 'Sales' ? $cost : $item['price'],
                     'transaction_type' => $request->transaction_type,
                     'contact_id' => 1,
                     'warehouse_id' => $warehouseId,
@@ -98,27 +100,32 @@ class TransactionController extends Controller
                 $product = Product::find($item['id']);
                 $transaction = new Transaction();
 
-                $sold = Product::find($item['id'])->sold + $item['quantity'];
-                Product::find($item['id'])->update(['sold' => $sold]);
-                $product_log = $transaction->where('product_id', $product->id)->sum('quantity');
-                $end_Stock = $product->stock + $product_log;
-                Product::where('id', $product->id)->update([
-                    'end_Stock' => $end_Stock,
-                    'price' => $item['price'],
-                ]);
+                if ($request->transaction_type == 'Sales') {
+                    $sold = Product::find($item['id'])->sold + $item['quantity'];
+                    Product::find($item['id'])->update(['sold' => $sold]);
 
-                $updateWarehouseStock = WarehouseStock::where('warehouse_id', $warehouseId)->where('product_id', $product->id)->first();
-                $updateCurrentStock = $transaction->where('product_id', $product->id)->where('warehouse_id', $warehouseId)->sum('quantity');
-                if ($updateWarehouseStock) {
-                    $updateWarehouseStock->current_stock = $updateCurrentStock;
-                    $updateWarehouseStock->save();
+                    $product_log = $transaction->where('product_id', $product->id)->sum('quantity');
+                    $end_Stock = $product->stock + $product_log;
+                    Product::where('id', $product->id)->update([
+                        'end_Stock' => $end_Stock,
+                        'price' => $item['price'],
+                    ]);
+
+                    $updateWarehouseStock = WarehouseStock::where('warehouse_id', $warehouseId)->where('product_id', $product->id)->first();
+                    $updateCurrentStock = $transaction->where('product_id', $product->id)->where('warehouse_id', $warehouseId)->sum('quantity');
+                    if ($updateWarehouseStock) {
+                        $updateWarehouseStock->current_stock = $updateCurrentStock;
+                        $updateWarehouseStock->save();
+                    } else {
+                        $warehouseStock = new WarehouseStock();
+                        $warehouseStock->warehouse_id = $warehouseId;
+                        $warehouseStock->product_id = $product->id;
+                        $warehouseStock->init_stock = 0;
+                        $warehouseStock->current_stock = $updateCurrentStock;
+                        $warehouseStock->save();
+                    }
                 } else {
-                    $warehouseStock = new WarehouseStock();
-                    $warehouseStock->warehouse_id = $warehouseId;
-                    $warehouseStock->product_id = $product->id;
-                    $warehouseStock->init_stock = 0;
-                    $warehouseStock->current_stock = $updateCurrentStock;
-                    $warehouseStock->save();
+                    Product::updateCostAndStock($item['id'], $item['quantity'], $item['quantity'], $item['price'], $warehouseId);
                 }
             }
 
@@ -223,6 +230,7 @@ class TransactionController extends Controller
         $transactions = Transaction::with('product')
             ->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity*cost) as total_cost, SUM(quantity*price) as total_price, SUM(quantity*price - quantity*cost) as total_fee')
             ->where('invoice', 'like', 'JR.BK%')
+            ->where('transaction_type', 'Sales')
             ->whereHas('product', function ($query) {
                 $query->where('category', 'Voucher & SP');
             })
