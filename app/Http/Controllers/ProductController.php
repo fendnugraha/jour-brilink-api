@@ -120,7 +120,7 @@ class ProductController extends Controller
 
     public function getAllProducts()
     {
-        $products = Product::all();
+        $products = Product::orderBy('name')->get();
         return new AccountResource($products, true, "Successfully fetched products");
     }
 }

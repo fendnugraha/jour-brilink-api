@@ -281,7 +281,7 @@ class JournalController extends Controller
         $request->validate([
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric|min:1',
+            'amount' => 'required|numeric',
             'trx_type' => 'required',
             'admin_fee' => 'numeric|min:0',
         ]);
@@ -428,14 +428,17 @@ class JournalController extends Controller
                 $rv = $r->whereBetween('date_issued', [
                     Carbon::parse($startDate)->startOfDay(),
                     Carbon::parse($endDate)->endOfDay()
-                ])->where('warehouse_id', $r->warehouse_id)->get();
+                ])
+                    ->where('trx_type', '!=', 'Mutasi Kas')
+                    ->where('trx_type', '!=', 'Jurnal Umum')
+                    ->where('warehouse_id', $r->warehouse_id)->get();
                 return [
                     'warehouse' => $r->warehouse->name,
                     'transfer' => $rv->where('trx_type', 'Transfer Uang')->sum('amount'),
                     'tarikTunai' => $rv->where('trx_type', 'Tarik Tunai')->sum('amount'),
                     'voucher' => $rv->where('trx_type', 'Voucher & SP')->sum('amount'),
                     'deposit' => $rv->where('trx_type', 'Deposit')->sum('amount'),
-                    'trx' => $rv->count(),
+                    'trx' => $rv->count() - $rv->where('trx_type', 'Pengeluaran')->count(),
                     'expense' => -$rv->where('trx_type', 'Pengeluaran')->sum('fee_amount'),
                     'fee' => $r->sumfee
                 ];
@@ -448,17 +451,12 @@ class JournalController extends Controller
         ], 200);
     }
 
-    public function mutationHistory(Request $request)
+    public function mutationHistory($account, $startDate, $endDate, Request $request)
     {
-        $request->validate([
-            'account' => 'required',
-        ]);
-
         $journal = new Journal();
-        $startDate = $request->endDate ? Carbon::parse($request->endDate)->startOfDay() : Carbon::now()->startOfDay();
-        $endDate = $request->endDate ? Carbon::parse($request->endDate)->endOfDay() : Carbon::now()->endOfDay();
+        $startDate = $endDate ? Carbon::parse($endDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $chartOfAccounts = ChartOfAccount::where(fn($query) => Auth()->user()->role !== 'Administrator' ? $query->where('warehouse_id', $request->warehouse_id) : $query)->orderBy('acc_code', 'asc')->get();
         $journal = new Journal();
         $journals = $journal->with('debt.account', 'cred.account', 'warehouse', 'user')
             ->whereBetween('date_issued', [$startDate, $endDate])
@@ -467,30 +465,29 @@ class JournalController extends Controller
                     ->orWhere('description', 'like', '%' . $request->search . '%')
                     ->orWhere('amount', 'like', '%' . $request->search . '%');
             })
-            ->where(function ($query) use ($request) {
-                $query->where('debt_code', $request->account)
-                    ->orWhere('cred_code', $request->account);
+            ->where(function ($query) use ($account) {
+                $query->where('debt_code', $account)
+                    ->orWhere('cred_code', $account);
             })
             ->orderBy('date_issued', 'asc')
-            ->paginate($request->perPage, ['*'], 'mutationHistory');
+            ->paginate(10, ['*'], 'mutationHistory');
 
-        $total = $journal->with('debt.account', 'cred.account', 'warehouse', 'user')->where('debt_code', $request->account)
+        $total = $journal->with('debt.account', 'cred.account', 'warehouse', 'user')->where('debt_code', $account)
             ->whereBetween('date_issued', [$startDate, $endDate])
-            ->orWhere('cred_code', $request->account)
+            ->orWhere('cred_code', $account)
             ->WhereBetween('date_issued', [$startDate, $endDate])
             ->orderBy('date_issued', 'asc')
             ->get();
 
         $initBalanceDate = Carbon::parse($startDate)->subDay(1)->endOfDay();
 
-        $debt_total = $total->where('debt_code', $request->account)->sum('amount');
-        $cred_total = $total->where('cred_code', $request->account)->sum('amount');
+        $debt_total = $total->where('debt_code', $account)->sum('amount');
+        $cred_total = $total->where('cred_code', $account)->sum('amount');
 
         $data = [
             'journals' => $journals,
-            'chartOfAccounts' => $chartOfAccounts,
-            'initBalance' => $journal->endBalanceBetweenDate($request->account, '0000-00-00', $initBalanceDate),
-            'endBalance' => $journal->endBalanceBetweenDate($request->account, '0000-00-00', $endDate),
+            'initBalance' => $journal->endBalanceBetweenDate($account, '0000-00-00', $initBalanceDate),
+            'endBalance' => $journal->endBalanceBetweenDate($account, '0000-00-00', $endDate),
             'debt_total' => $debt_total,
             'cred_total' => $cred_total,
         ];

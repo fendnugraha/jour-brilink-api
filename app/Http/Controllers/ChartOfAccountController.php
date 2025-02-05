@@ -395,7 +395,7 @@ class ChartOfAccountController extends Controller
 
     public function getAllAccounts()
     {
-        $chartOfAccounts = ChartOfAccount::with(['account'])->get();
+        $chartOfAccounts = ChartOfAccount::with(['account'])->orderBy('acc_code')->get();
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 

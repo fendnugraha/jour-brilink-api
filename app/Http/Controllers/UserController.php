@@ -44,7 +44,7 @@ class UserController extends Controller
                 'name' => $request->name,
                 'email' => $request->email,
                 'email_verified_at' => now(),
-                'password' => bcrypt($request->password)
+                'password' => $request->password
             ]);
 
             // Create and save the user role
@@ -186,23 +186,25 @@ class UserController extends Controller
     public function updatePassword(Request $request, string $id)
     {
         $request->validate([
-            'oldPassword' => 'required',
+            // 'oldPassword' => 'required',
             'password' => 'required|min:6',
             'confirmPassword' => 'required|same:password'
         ]);
 
         $user = User::find($id);
-        if (!password_verify($request->oldPassword, $user->password)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Old password is incorrect'
-            ], 400);
+        if (auth()->user()->role->role !== 'Administrator') {
+            if (!password_verify($request->oldPassword, $user->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Old password is incorrect'
+                ], 400);
+            }
         }
 
         DB::beginTransaction();
         try {
             $user->update([
-                'password' => bcrypt($request->password)
+                'password' => $request->password
             ]);
 
             DB::commit();

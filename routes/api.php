@@ -21,7 +21,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::apiResource('users', UserController::class);
     Route::get('get-all-users', [UserController::class, 'getAllUsers']);
-    Route::put('users/{user}/update-password', [UserController::class, 'updatePassword']);
+    Route::put('users/{id}/update-password', [UserController::class, 'updatePassword']);
 
     Route::apiResource('accounts', ChartOfAccountController::class);
     Route::get('get-all-accounts', [ChartOfAccountController::class, 'getAllAccounts']);
@@ -56,7 +56,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-expenses/{warehouse}/{startDate}/{endDate}', [JournalController::class, 'getExpenses']);
     Route::get('get-warehouse-balance/{endDate}', [JournalController::class, 'getWarehouseBalance']);
     Route::get('get-revenue-report/{startDate}/{endDate}', [JournalController::class, 'getRevenueReport']);
-    Route::get('mutation-history', [JournalController::class, 'mutationHistory']);
+    Route::get('mutation-history/{account}/{startDate}/{endDate}', [JournalController::class, 'mutationHistory']);
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);
@@ -64,6 +64,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-trx-by-warehouse/{warehouse}/{startDate}/{endDate}', [TransactionController::class, 'getTrxByWarehouse']);
 
     //Finance
-    Route::apiResource('finance', FinanceController::class);
+    Route::apiResource('finance/{contact}/{financeType}', FinanceController::class);
     Route::get('get-finance-by-contact-id/{contactId}', [FinanceController::class, 'getFinanceByContactId']);
 });
