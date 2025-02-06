@@ -13,7 +13,12 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index() {}
+    public function index()
+    {
+        $users = User::with('role.warehouse')->paginate(10)->onEachSide(0);
+
+        return new AccountResource($users, true, "Successfully fetched all users");
+    }
 
     /**
      * Show the form for creating a new resource.
