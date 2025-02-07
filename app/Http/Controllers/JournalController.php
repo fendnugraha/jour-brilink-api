@@ -185,8 +185,8 @@ class JournalController extends Controller
             $journal->create([
                 'invoice' => $invoice,  // Menggunakan metode statis untuk invoice
                 'date_issued' => now(),
-                'debt_code' => 10,
-                'cred_code' => 10,
+                'debt_code' => 9,
+                'cred_code' => 9,
                 'amount' => $modal,
                 'fee_amount' => $fee,
                 'trx_type' => 'Voucher & SP',
@@ -336,7 +336,7 @@ class JournalController extends Controller
 
     public function getJournalByWarehouse($warehouse, $startDate, $endDate)
     {
-        $chartOfAccounts = ChartOfAccount::where('warehouse_id', $warehouse)->orWhere('id', 10)->pluck('id')->toArray();
+        $chartOfAccounts = ChartOfAccount::where('warehouse_id', $warehouse)->orWhere('id', 9)->pluck('id')->toArray();
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 

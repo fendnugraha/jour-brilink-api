@@ -32,7 +32,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::put('warehouse/{warehouse}/add-cash-bank/{id}', [ChartOfAccountController::class, 'addCashAndBankToWarehouse']);
     Route::get('get-cash-bank-by-warehouse/{warehouse}', [ChartOfAccountController::class, 'getCashAndBankByWarehouse']);
     Route::get('get-expense-accounts', [ChartOfAccountController::class, 'getExpenses']);
-    Route::get('get-cash-bank-balance/{warehouse}', [ChartOfAccountController::class, 'getCashBankBalance']);
+    Route::get('get-cash-bank-balance/{warehouse}/{endDate}', [ChartOfAccountController::class, 'getCashBankBalance']);
     Route::get('daily-dashboard/{warehouse}/{startDate}/{endDate}', [ChartOfAccountController::class, 'dailyDashboard']);
 
     Route::apiResource('products', ProductController::class);

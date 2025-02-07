@@ -320,11 +320,11 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
-    public function getCashBankBalance($warehouse)
+    public function getCashBankBalance($warehouse, $endDate)
     {
 
         $journal = new Journal();
-        $endDate = Carbon::now()->endOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $transactions = $journal->with(['debt', 'cred'])
             ->selectRaw('debt_code, cred_code, SUM(amount) as total, warehouse_id')
