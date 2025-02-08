@@ -249,9 +249,9 @@ class JournalController extends Controller
             $journal->create([
                 'invoice' => $invoice,  // Menggunakan metode statis untuk invoice
                 'date_issued' => now(),
-                'debt_code' => 10,
-                'cred_code' => 10,
-                'amount' => $price,
+                'debt_code' => 9,
+                'cred_code' => 9,
+                'amount' => $cost,
                 'fee_amount' => $fee,
                 'trx_type' => 'Deposit',
                 'description' => $description,
