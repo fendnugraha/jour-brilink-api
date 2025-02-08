@@ -497,4 +497,22 @@ class JournalController extends Controller
             'data' => $data
         ], 200);
     }
+
+    public function getRankByProfit()
+    {
+        $journal = new Journal();
+        $startDate = Carbon::now()->startOfDay();
+        $endDate = Carbon::now()->endOfDay();
+
+        $revenue = $journal->with('warehouse')->selectRaw('SUM(fee_amount) as total, warehouse_id')
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->groupBy('warehouse_id')
+            ->orderBy('total', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $revenue
+        ], 200);
+    }
 }
