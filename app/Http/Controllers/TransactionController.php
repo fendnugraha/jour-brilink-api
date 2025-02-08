@@ -28,7 +28,7 @@ class TransactionController extends Controller
      */
     public function index()
     {
-        $transactions = Transaction::with(['product', 'contact'])->orderBy('created_at', 'desc')->paginate(5);
+        $transactions = Transaction::with(['product', 'contact'])->orderBy('created_at', 'desc')->paginate(10);
 
         return new AccountResource($transactions, true, "Successfully fetched transactions");
     }
@@ -251,7 +251,7 @@ class TransactionController extends Controller
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->where('warehouse_id', $warehouse)
             ->orderBy('created_at', 'desc')
-            ->paginate(5);
+            ->paginate(10);
 
         return new AccountResource($transactions, true, "Successfully fetched transactions");
     }

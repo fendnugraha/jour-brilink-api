@@ -506,6 +506,7 @@ class JournalController extends Controller
 
         $revenue = $journal->with('warehouse')->selectRaw('SUM(fee_amount) as total, warehouse_id')
             ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where('warehouse_id', '!=', 1)
             ->groupBy('warehouse_id')
             ->orderBy('total', 'desc')
             ->get();
