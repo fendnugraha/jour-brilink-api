@@ -391,7 +391,7 @@ class JournalController extends Controller
         $sumtotalCash = $chartOfAccounts->whereIn('account_id', ['1']);
         $sumtotalBank = $chartOfAccounts->whereIn('account_id', ['2']);
 
-        $warehouse = Warehouse::orderBy('name', 'asc')->get();
+        $warehouse = Warehouse::where('status', 1)->orderBy('name', 'asc')->get();
 
         $data = [
             'warehouse' => $warehouse->map(function ($warehouse) use ($chartOfAccounts) {
