@@ -372,7 +372,7 @@ class ChartOfAccountController extends Controller
         }
 
         $trxForSalesCount = $journal->whereBetween('date_issued', [$startDate, $endDate])
-            ->where(fn($query) => $warehouse == "" ?
+            ->where(fn($query) => $warehouse == "all" ?
                 $query : $query->where('warehouse_id', $warehouse))
             ->get();
 

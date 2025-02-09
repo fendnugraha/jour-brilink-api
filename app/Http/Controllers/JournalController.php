@@ -359,7 +359,13 @@ class JournalController extends Controller
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $expenses = Journal::with('warehouse', 'debt')
-            ->where('warehouse_id', $warehouse)
+            ->where(function ($query) use ($warehouse) {
+                if ($warehouse === "all") {
+                    $query;
+                } else {
+                    $query->where('warehouse_id', $warehouse);
+                }
+            })
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->where('trx_type', 'Pengeluaran')
             ->orderBy('id', 'desc')

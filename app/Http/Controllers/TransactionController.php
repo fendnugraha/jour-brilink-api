@@ -255,7 +255,13 @@ class TransactionController extends Controller
 
         $transactions = Transaction::with(['product', 'contact'])
             ->whereBetween('date_issued', [$startDate, $endDate])
-            ->where('warehouse_id', $warehouse)
+            ->where(function ($query) use ($warehouse) {
+                if ($warehouse === "all") {
+                    $query;
+                } else {
+                    $query->where('warehouse_id', $warehouse);
+                }
+            })
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
