@@ -235,7 +235,13 @@ class TransactionController extends Controller
                 $query->where('category', 'Voucher & SP');
             })
             ->whereBetween('date_issued', [$startDate, $endDate])
-            ->where('warehouse_id', $warehouse)
+            ->where(function ($query) use ($warehouse) {
+                if ($warehouse === "all") {
+                    $query->where('warehouse_id', $warehouse);
+                } else {
+                    $query;
+                }
+            })
             ->groupBy('product_id')
             ->get();
 

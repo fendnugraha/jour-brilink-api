@@ -345,6 +345,7 @@ class JournalController extends Controller
                 $query->whereIn('debt_code', $chartOfAccounts)
                     ->orWhereIn('cred_code', $chartOfAccounts);
             })
+            ->where('warehouse_id', $warehouse)
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->orderBy('created_at', 'desc')
             ->get();
