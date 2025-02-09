@@ -231,9 +231,9 @@ class TransactionController extends Controller
             ->selectRaw('product_id, SUM(quantity) as quantity, SUM(quantity*cost) as total_cost, SUM(quantity*price) as total_price, SUM(quantity*price - quantity*cost) as total_fee')
             ->where('invoice', 'like', 'JR.BK%')
             ->where('transaction_type', 'Sales')
-            ->whereHas('product', function ($query) {
-                $query->where('category', 'Voucher & SP');
-            })
+            // ->whereHas('product', function ($query) {
+            //     $query->where('category', 'Voucher & SP');
+            // })
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->where(function ($query) use ($warehouse) {
                 if ($warehouse === "all") {

@@ -212,4 +212,88 @@ class FinanceController extends Controller
 
         return new AccountResource($data, true, "Successfully fetched finances");
     }
+
+    public function getInvoiceValue($invoice)
+    {
+        $sisa = Finance::selectRaw('SUM(bill_amount) - SUM(payment_amount) as sisa')->where('invoice', $invoice)->groupBy('invoice')->first()->sisa;
+        return $sisa;
+    }
+
+    public function getFinanceData($invoice)
+    {
+        $pay_nth = Finance::where('invoice', $invoice)->where('payment_nth', 0)->first();
+        return $pay_nth;
+    }
+
+    public function storePayment(Request $request)
+    {
+        $sisa = $this->getInvoiceValue($request->invoice);
+        if ($sisa <= 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Jumlah pembayaran melebihi sisa tagihan'
+            ]);
+        }
+
+        $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
+        $finance = $this->getFinanceData($request->invoice);
+        $request->validate([
+            'contact_id' => 'required|exists:contacts,id',
+            'invoice' => 'required|exists:finances,invoice',
+            'account_id' => 'required|exists:chart_of_accounts,id',
+            'amount' => 'required|numeric|min:0|max:' . $sisa,
+            'notes' => 'required',
+        ]);
+
+        $payment_nth = Finance::selectRaw('MAX(payment_nth) as payment_nth')->where('invoice', $request->invoice)->first()->payment_nth + 1;
+        $payment_status = $this->getInvoiceValue($request->invoice) == 0 ? 1 : 0;
+
+        DB::beginTransaction();
+        try {
+            Finance::create([
+                'date_issued' => $dateIssued,
+                'due_date' => $finance->due_date,
+                'invoice' => $request->invoice,
+                'description' => $request->notes,
+                'bill_amount' => 0,
+                'payment_amount' => $request->amount,
+                'payment_status' => $payment_status,
+                'payment_nth' => $payment_nth,
+                'finance_type' => $finance->finance_type,
+                'contact_id' => $request->contact_id,
+                'user_id' => auth()->user()->id,
+                'account_code' => $request->account_id,
+            ]);
+
+            Journal::create([
+                'date_issued' => $dateIssued,
+                'invoice' => $request->invoice,
+                'description' => $request->notes,
+                'debt_code' => $finance->account_code,
+                'cred_code' => $request->account_id,
+                'amount' => $request->amount,
+                'fee_amount' => 0,
+                'status' => 1,
+                'rcv_pay' => $this->getFinanceData($request->invoice)->finance_type,
+                'payment_status' => $payment_status,
+                'payment_nth' => $payment_nth,
+                'user_id' => auth()->user()->id,
+                'warehouse_id' => 1
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Payment created successfully'
+            ], 201);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -68,4 +68,5 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('finance', FinanceController::class);
     Route::get('finance-by-type/{contact}/{financeType}', [FinanceController::class, 'getFinanceByType']);
     Route::get('get-finance-by-contact-id/{contactId}', [FinanceController::class, 'getFinanceByContactId']);
+    Route::post('store-payment', [FinanceController::class, 'storePayment']);
 });
