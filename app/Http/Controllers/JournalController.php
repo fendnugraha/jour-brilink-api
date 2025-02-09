@@ -336,19 +336,32 @@ class JournalController extends Controller
 
     public function getJournalByWarehouse($warehouse, $startDate, $endDate)
     {
-        $chartOfAccounts = ChartOfAccount::where('warehouse_id', $warehouse)->orWhere('id', 9)->pluck('id')->toArray();
+        $chartOfAccounts = ChartOfAccount::where('warehouse_id', $warehouse)->pluck('id')->toArray();
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $journals = Journal::with(['debt', 'cred'])
-            ->where(function ($query) use ($chartOfAccounts) {
-                $query->whereIn('debt_code', $chartOfAccounts)
-                    ->orWhereIn('cred_code', $chartOfAccounts);
+            ->where(function ($query) use ($chartOfAccounts, $startDate, $endDate) {
+                // Filter based on chart of accounts (either debt_code or cred_code)
+                $query->where(function ($subQuery) use ($chartOfAccounts) {
+                    $subQuery->whereIn('debt_code', $chartOfAccounts)
+                        ->orWhereIn('cred_code', $chartOfAccounts);
+                })
+                    ->whereBetween('date_issued', [$startDate, $endDate]);
             })
-            ->where('warehouse_id', $warehouse)
-            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->orWhere(function ($query) use ($warehouse, $startDate, $endDate) {
+                // Ensure that either debt_code or cred_code is 9, and warehouse_id is as specified
+                $query->where(function ($subQuery) {
+                    $subQuery->where('debt_code', 9)
+                        ->orWhere('cred_code', 9);
+                })
+                    ->where('warehouse_id', $warehouse)
+                    ->whereBetween('date_issued', [$startDate, $endDate]); // Apply whereBetween here as well
+            })
             ->orderBy('created_at', 'desc')
             ->get();
+
+
 
         return new AccountResource($journals, true, "Successfully fetched journals");
     }
