@@ -248,13 +248,23 @@ class TransactionController extends Controller
         return new AccountResource($transactions, true, "Successfully fetched transactions");
     }
 
-    public function getTrxByWarehouse($warehouse, $startDate, $endDate)
+    public function getTrxByWarehouse($warehouse, $startDate, $endDate, Request $request)
     {
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $transactions = Transaction::with(['product', 'contact'])
             ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where(function ($query) use ($request) {
+                if ($request->search) {
+                    $query->where('invoice', 'like', '%' . $request->search . '%')
+                        ->orWhereHas('product', function ($query) use ($request) {
+                            $query->where('name', 'like', '%' . $request->search . '%');
+                        });
+                } else {
+                    $query;
+                }
+            })
             ->where(function ($query) use ($warehouse) {
                 if ($warehouse === "all") {
                     $query;
