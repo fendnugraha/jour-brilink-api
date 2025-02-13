@@ -340,7 +340,7 @@ class JournalController extends Controller
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $journals = Journal::with(['debt', 'cred'])
+        $journals = Journal::with(['debt', 'cred', 'transaction.product'])
             ->where(function ($query) use ($chartOfAccounts, $startDate, $endDate) {
                 // Filter based on chart of accounts (either debt_code or cred_code)
                 $query->where(function ($subQuery) use ($chartOfAccounts) {
