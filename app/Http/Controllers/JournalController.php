@@ -435,7 +435,7 @@ class JournalController extends Controller
     {
         $journal = new Journal();
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
-        $endDate = $endDate ? Carbon::parse($startDate)->endOfDay() : Carbon::now()->endOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $revenue = $journal->with('warehouse')->selectRaw('SUM(amount) as total, warehouse_id, SUM(fee_amount) as sumfee')
             ->whereBetween('date_issued', [$startDate, $endDate])
