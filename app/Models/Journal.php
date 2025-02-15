@@ -82,7 +82,7 @@ class Journal extends Model
 
     public function transaction()
     {
-        return $this->belongsTo(Transaction::class, 'invoice', 'invoice');
+        return $this->hasMany(Transaction::class, 'invoice', 'invoice');
     }
 
     public static function invoice_journal()
