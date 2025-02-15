@@ -360,7 +360,7 @@ class ChartOfAccountController extends Controller
             ->groupBy('debt_code', 'cred_code', 'warehouse_id')
             ->get();
 
-        $chartOfAccounts = ChartOfAccount::with(['account'])->where('warehouse_id', $warehouse)->get();
+        $chartOfAccounts = ChartOfAccount::with(['account'])->where(fn($query) => $warehouse == "all" ? $query : $query->where('warehouse_id', $warehouse))->get();
 
         foreach ($chartOfAccounts as $value) {
             $debit = $transactions->where('debt_code', $value->id)->sum('total');
