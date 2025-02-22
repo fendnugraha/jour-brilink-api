@@ -14,7 +14,7 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = Product::where('name', 'like', '%' . $request->search . '%')->paginate(5)->onEachSide(0);
+        $products = Product::where('name', 'like', '%' . $request->search . '%')->paginate(10)->onEachSide(0);
         return new AccountResource($products, true, "Successfully fetched products");
     }
 
@@ -80,7 +80,7 @@ class ProductController extends Controller
             [
                 'name' => 'required|string|max:255|unique:products,name,' . $product->id,
                 'category' => 'required|exists:product_categories,name',  // Make sure category_id is present
-                'price' => 'required|numeric',
+                'price' => 'required|numeric|min:' . $product->cost,
                 'cost' => 'required|numeric',
             ]
         );
@@ -94,7 +94,7 @@ class ProductController extends Controller
 
         return response()->json([
             'message' => 'Product updated successfully',
-            'product' => $product
+            'product' => $product->refresh()
         ], 200);
     }
 
