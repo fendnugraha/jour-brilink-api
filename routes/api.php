@@ -56,6 +56,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-expenses/{warehouse}/{startDate}/{endDate}', [JournalController::class, 'getExpenses']);
     Route::get('get-warehouse-balance/{endDate}', [JournalController::class, 'getWarehouseBalance']);
     Route::get('get-revenue-report/{startDate}/{endDate}', [JournalController::class, 'getRevenueReport']);
+    Route::get('get-revenue-report-by-warehouse/{warehouseId}/{month}/{year}', [JournalController::class, 'getRevenueReportByWarehouse']);
     Route::get('mutation-history/{account}/{startDate}/{endDate}', [JournalController::class, 'mutationHistory']);
     Route::get('get-rank-by-profit', [JournalController::class, 'getRankByProfit']);
 

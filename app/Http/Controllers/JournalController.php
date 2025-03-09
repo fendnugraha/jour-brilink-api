@@ -416,6 +416,7 @@ class JournalController extends Controller
         $data = [
             'warehouse' => $warehouse->map(function ($warehouse) use ($chartOfAccounts) {
                 return [
+                    'id' => $warehouse->id,
                     'name' => $warehouse->name,
                     'cash' => $chartOfAccounts->whereIn('account_id', ['1'])->where('warehouse_id', $warehouse->id)->sum('balance'),
                     'bank' => $chartOfAccounts->whereIn('account_id', ['2'])->where('warehouse_id', $warehouse->id)->sum('balance')
@@ -437,7 +438,8 @@ class JournalController extends Controller
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $revenue = $journal->with('warehouse')->selectRaw('SUM(amount) as total, warehouse_id, SUM(fee_amount) as sumfee')
+        $revenue = $journal->with(['warehouse'])
+            ->selectRaw('SUM(amount) as total, warehouse_id, SUM(fee_amount) as sumfee')
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->groupBy('warehouse_id')
             ->orderBy('sumfee', 'desc')
@@ -454,6 +456,8 @@ class JournalController extends Controller
                     ->where('warehouse_id', $r->warehouse_id)->get();
                 return [
                     'warehouse' => $r->warehouse->name,
+                    'warehouseId' => $r->warehouse_id,
+                    'warehouse_code' => $r->warehouse->code,
                     'transfer' => $rv->where('trx_type', 'Transfer Uang')->sum('amount'),
                     'tarikTunai' => $rv->where('trx_type', 'Tarik Tunai')->sum('amount'),
                     'voucher' => $rv->where('trx_type', 'Voucher & SP')->sum('amount'),
@@ -468,6 +472,54 @@ class JournalController extends Controller
         return response()->json([
             'success' => true,
             'data' => $data
+        ], 200);
+    }
+
+    public function getRevenueReportByWarehouse($warehouseId, $month, $year)
+    {
+        $startDate = Carbon::parse("$year-$month-01")->startOfMonth();
+        $endDate = Carbon::parse("$year-$month-01")->endOfMonth();
+
+        $journal = new Journal();
+
+        // Data harian
+        $revenue = $journal->selectRaw("
+            DATE(date_issued) as date,
+            SUM(CASE WHEN trx_type = 'Transfer Uang' THEN amount ELSE 0 END) as transfer,
+            SUM(CASE WHEN trx_type = 'Tarik Tunai' THEN amount ELSE 0 END) as tarikTunai,
+            SUM(CASE WHEN trx_type = 'Voucher & SP' THEN amount ELSE 0 END) as voucher,
+            SUM(CASE WHEN trx_type = 'Deposit' THEN amount ELSE 0 END) as deposit,
+            COUNT(*) - COUNT(CASE WHEN trx_type = 'Pengeluaran' THEN 1 ELSE NULL END) as trx,
+            -SUM(CASE WHEN trx_type = 'Pengeluaran' THEN fee_amount ELSE 0 END) as expense,
+            SUM(fee_amount) as fee
+        ")
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where('warehouse_id', $warehouseId)
+            ->whereNotIn('trx_type', ['Mutasi Kas', 'Jurnal Umum'])
+            ->groupBy('date')
+            ->get();
+
+        // Total keseluruhan
+        $totals = $journal->selectRaw("
+            SUM(CASE WHEN trx_type = 'Transfer Uang' THEN amount ELSE 0 END) as totalTransfer,
+            SUM(CASE WHEN trx_type = 'Tarik Tunai' THEN amount ELSE 0 END) as totalTarikTunai,
+            SUM(CASE WHEN trx_type = 'Voucher & SP' THEN amount ELSE 0 END) as totalVoucher,
+            SUM(CASE WHEN trx_type = 'Deposit' THEN amount ELSE 0 END) as totalDeposit,
+            COUNT(*) - COUNT(CASE WHEN trx_type = 'Pengeluaran' THEN 1 ELSE NULL END) as totalTrx,
+            -SUM(CASE WHEN trx_type = 'Pengeluaran' THEN fee_amount ELSE 0 END) as totalExpense,
+            SUM(fee_amount) as totalFee
+        ")
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where('warehouse_id', $warehouseId)
+            ->whereNotIn('trx_type', ['Mutasi Kas', 'Jurnal Umum'])
+            ->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'revenue' => $revenue,
+                'totals' => $totals
+            ]
         ], 200);
     }
 
