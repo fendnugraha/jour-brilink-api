@@ -128,6 +128,11 @@ class JournalController extends Controller
             'trx_type' => 'required',
             'fee_amount' => 'required|numeric|min:0',
             'custName' => 'required|regex:/^[a-zA-Z0-9\s]+$/|min:3|max:255',
+        ], [
+            'debt_code.required' => 'Akun debet harus diisi.',
+            'cred_code.required' => 'Akun kredit harus diisi.',
+            'custName.required' => 'Customer name harus diisi.',
+            'custName.regex' => 'Customer name tidak valid.',
         ]);
         $description = $request->description ? $request->description . ' - ' . strtoupper($request->custName) : $request->trx_type . ' - ' . strtoupper($request->custName);
 
@@ -284,6 +289,10 @@ class JournalController extends Controller
             'amount' => 'required|numeric',
             'trx_type' => 'required',
             'admin_fee' => 'numeric|min:0',
+        ], [
+            'admin_fee.numeric' => 'Biaya admin harus berupa angka.',
+            'debt_code.required' => 'Akun debet harus diisi.',
+            'cred_code.required' => 'Akun kredit harus diisi.',
         ]);
 
         $description = $request->description ?? 'Mutasi Kas';
