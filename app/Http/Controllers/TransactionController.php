@@ -74,7 +74,7 @@ class TransactionController extends Controller
                         'date_issued' => now(),
                         'debt_code' => 9,
                         'cred_code' => 9,
-                        'amount' => $cost,
+                        'amount' => $modal,
                         'fee_amount' => $fee,
                         'trx_type' => 'Accessories',
                         'description' => $description,
