@@ -132,7 +132,7 @@ class TransactionController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Penjualan accesories berhasil, invoice: ' . $invoice,
+                'message' => 'Penjualan accesories berhasil disimpan, invoice: ' . $invoice,
                 'journal' => $journal
             ], 201);
         } catch (\Exception $e) {
