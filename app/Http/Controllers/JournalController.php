@@ -323,7 +323,7 @@ class JournalController extends Controller
                     'trx_type' => 'Pengeluaran',
                     'description' => $description ?? 'Biaya admin Mutasi Saldo Kas',
                     'user_id' => auth()->user()->id,
-                    'warehouse_id' => auth()->user()->role->warehouse_id
+                    'warehouse_id' => 1
                 ]);
             }
 
