@@ -448,7 +448,7 @@ class JournalController extends Controller
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $revenue = $journal->with(['warehouse'])
-            ->selectRaw('SUM(amount) as total, warehouse_id, SUM(fee_amount) as sumfee')
+            ->selectRaw('SUM(amount) as total, warehouse_id, SUM(fee_amount) + 0 as sumfee')
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->groupBy('warehouse_id')
             ->orderBy('sumfee', 'desc')
@@ -470,10 +470,11 @@ class JournalController extends Controller
                     'transfer' => $rv->where('trx_type', 'Transfer Uang')->sum('amount'),
                     'tarikTunai' => $rv->where('trx_type', 'Tarik Tunai')->sum('amount'),
                     'voucher' => $rv->where('trx_type', 'Voucher & SP')->sum('amount'),
+                    'accessories' => $rv->where('trx_type', 'Accessories')->sum('amount'),
                     'deposit' => $rv->where('trx_type', 'Deposit')->sum('amount'),
                     'trx' => $rv->count() - $rv->where('trx_type', 'Pengeluaran')->count(),
                     'expense' => -$rv->where('trx_type', 'Pengeluaran')->sum('fee_amount'),
-                    'fee' => $r->sumfee
+                    'fee' => doubleval($r->sumfee ?? 0)
                 ];
             })
         ];
