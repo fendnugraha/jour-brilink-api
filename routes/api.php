@@ -11,6 +11,7 @@ use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\FinanceController;
+use App\Http\Controllers\LogActivityController;
 use App\Http\Controllers\ProductCategoryController;
 use App\Models\Finance;
 
@@ -70,4 +71,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('finance-by-type/{contact}/{financeType}', [FinanceController::class, 'getFinanceByType']);
     Route::get('get-finance-by-contact-id/{contactId}', [FinanceController::class, 'getFinanceByContactId']);
     Route::post('store-payment', [FinanceController::class, 'storePayment']);
+
+    Route::get('log-activity', [LogActivityController::class, 'index']);
 });

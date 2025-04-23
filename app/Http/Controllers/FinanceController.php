@@ -5,11 +5,12 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Finance;
 use App\Models\Journal;
+use App\Models\LogActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\AccountResource;
-use Illuminate\Support\Facades\Log;
 
 class FinanceController extends Controller
 {
@@ -161,10 +162,21 @@ class FinanceController extends Controller
             ]);
         }
 
+        $log = new LogActivity();
+
         DB::beginTransaction();
         try {
             Journal::where('invoice', $invoice)->where('payment_status', $finance->payment_status)->where('payment_nth', $finance->payment_nth)->delete();
             $finance->delete();
+
+            $financeAmount = $finance->bill_amount > 0 ? $finance->bill_amount : $finance->payment_amount;
+            $billOrPayment = $finance->bill_amount > 0 ? 'bill' : 'payment';
+            $log->create([
+                'user_id' => auth()->user()->id,
+                'warehouse_id' => 1,
+                'activity' => $finance->finance_type . ' deleted',
+                'description' => $finance->finance_type . ' with invoice: ' . $finance->invoice . ' ' . $billOrPayment . ' amount: ' . $financeAmount . ' deleted by ' . auth()->user()->name,
+            ]);
 
             DB::commit();
             return response()->json([

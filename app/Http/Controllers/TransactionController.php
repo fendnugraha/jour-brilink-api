@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Journal;
 use App\Models\Product;
+use App\Models\LogActivity;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
 use App\Models\WarehouseStock;
@@ -182,6 +183,7 @@ class TransactionController extends Controller
                 'message' => 'Transaction not found'
             ], 404);
         }
+        $log = new LogActivity();
 
         DB::beginTransaction();
         try {
@@ -204,6 +206,13 @@ class TransactionController extends Controller
                 $updateWarehouseStock->current_stock -= $transaction->quantity;
                 $updateWarehouseStock->save();
             }
+            $qty = $transaction->quantity > 0 ? $transaction->quantity : $transaction->quantity * -1;
+            $log->create([
+                'user_id' => auth()->user()->id,
+                'warehouse_id' => $transaction->warehouse_id,
+                'activity' => 'Deleted Transaction',
+                'description' => 'Deleted Transaction with ID: ' . $transaction->id . ' by ' . auth()->user()->name . ' (' . $transaction->product->name . ' with quantity: ' . $qty . ')',
+            ]);
 
             DB::commit();
 

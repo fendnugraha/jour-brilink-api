@@ -12,6 +12,7 @@ use App\Models\ChartOfAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
+use App\Models\LogActivity;
 
 class JournalController extends Controller
 {
@@ -80,7 +81,27 @@ class JournalController extends Controller
         ]);
 
         $journal = Journal::find($id);
-        $journal->update($request->all());
+        $log = new LogActivity();
+        DB::beginTransaction();
+        try {
+            $journal->update($request->all());
+            $log->create([
+                'user_id' => auth()->user()->id,
+                'warehouse_id' => $journal->warehouse_id,
+                'activity' => 'Updated Journal',
+                'description' => 'Updated Journal with ID: ' . $journal->id . ' by ' . auth()->user()->name,
+            ]);
+
+            DB::commit();
+        } catch (\Exception $e) {
+            DB::rollBack();
+            // Flash an error message
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update journal'
+            ]);
+        }
         return new AccountResource($journal, true, "Successfully updated journal");
     }
 
@@ -96,12 +117,21 @@ class JournalController extends Controller
         //         'message' => 'Journal cannot be deleted because it has transactions'
         //     ]);
         // }
+        $log = new LogActivity();
         DB::beginTransaction();
         try {
             $journal->delete();
             if ($transactionsExist) {
                 $journal->transaction()->delete();
             }
+
+            $log->create([
+                'user_id' => auth()->user()->id,
+                'warehouse_id' => $journal->warehouse_id,
+                'activity' => 'Deleted Journal',
+                'description' => 'Deleted Journal with ID: ' . $journal->id . ' by ' . auth()->user()->name . ' (' . $journal->description . ' from ' . $journal->cred->acc_name . ' to ' . $journal->debt->acc_name . ' with amount: ' . $journal->amount . ' and fee: ' . $journal->fee_amount . ')',
+            ]);
+
             DB::commit();
             return response()->json([
                 'success' => true,
