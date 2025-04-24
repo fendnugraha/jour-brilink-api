@@ -80,30 +80,52 @@ class JournalController extends Controller
             'description' => 'max:255',
         ]);
 
-        $journal = Journal::find($id);
+        $journal = Journal::findOrFail($id); // Better to fail gracefully
         $log = new LogActivity();
+        $isAmountChanged = $journal->amount != $request->amount;
+        $isFeeAmountChanged = $journal->fee_amount != $request->fee_amount;
+
         DB::beginTransaction();
         try {
+            $oldAmount = $journal->amount;
+            $oldFeeAmount = $journal->fee_amount;
+
             $journal->update($request->all());
+
+            $descriptionParts = [];
+            if ($isAmountChanged) {
+                $oldAmountFormatted = number_format($oldAmount, 0, ',', '.');
+                $newAmountFormatted = number_format($request->amount, 0, ',', '.');
+                $descriptionParts[] = "Amount changed from Rp $oldAmountFormatted to Rp $newAmountFormatted.";
+            }
+            if ($isFeeAmountChanged) {
+                $oldFeeFormatted = number_format($oldFeeAmount, 0, ',', '.');
+                $newFeeFormatted = number_format($request->fee_amount, 0, ',', '.');
+                $descriptionParts[] = "Fee amount changed from Rp $oldFeeFormatted to Rp $newFeeFormatted.";
+            }
+
+
             $log->create([
-                'user_id' => auth()->user()->id,
+                'user_id' => auth()->id(),
                 'warehouse_id' => $journal->warehouse_id,
                 'activity' => 'Updated Journal',
-                'description' => 'Updated Journal with ID: ' . $journal->id . ' by ' . auth()->user()->name,
+                'description' => 'Updated Journal with ID: ' . $journal->id . '. ' . implode(' ', $descriptionParts),
             ]);
 
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
-            // Flash an error message
             Log::error($e->getMessage());
+
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update journal'
+                'message' => 'Failed to update journal',
             ]);
         }
+
         return new AccountResource($journal, true, "Successfully updated journal");
     }
+
 
     /**
      * Remove the specified resource from storage.
@@ -129,7 +151,7 @@ class JournalController extends Controller
                 'user_id' => auth()->user()->id,
                 'warehouse_id' => $journal->warehouse_id,
                 'activity' => 'Deleted Journal',
-                'description' => 'Deleted Journal with ID: ' . $journal->id . ' by ' . auth()->user()->name . ' (' . $journal->description . ' from ' . $journal->cred->acc_name . ' to ' . $journal->debt->acc_name . ' with amount: ' . $journal->amount . ' and fee: ' . $journal->fee_amount . ')',
+                'description' => 'Deleted Journal with ID: ' . $journal->id . ' by ' . auth()->user()->name . ' (' . $journal->description . ' from ' . $journal->cred->acc_name . ' to ' . $journal->debt->acc_name . ' with amount: ' . number_format($journal->amount, 0, ',', '.') . ' and fee amount: ' . number_format($journal->fee_amount, 0, ',', '.') . ')',
             ]);
 
             DB::commit();
