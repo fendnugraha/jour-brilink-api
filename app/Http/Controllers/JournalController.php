@@ -151,7 +151,7 @@ class JournalController extends Controller
                 'user_id' => auth()->user()->id,
                 'warehouse_id' => $journal->warehouse_id,
                 'activity' => 'Deleted Journal',
-                'description' => 'Deleted Journal with ID: ' . $journal->id . ' by ' . auth()->user()->name . ' (' . $journal->description . ' from ' . $journal->cred->acc_name . ' to ' . $journal->debt->acc_name . ' with amount: ' . number_format($journal->amount, 0, ',', '.') . ' and fee amount: ' . number_format($journal->fee_amount, 0, ',', '.') . ')',
+                'description' => 'Deleted Journal with ID: ' . $journal->id . ' (' . $journal->description . ' from ' . $journal->cred->acc_name . ' to ' . $journal->debt->acc_name . ' with amount: ' . number_format($journal->amount, 0, ',', '.') . ' and fee amount: ' . number_format($journal->fee_amount, 0, ',', '.') . ')',
             ]);
 
             DB::commit();
@@ -588,7 +588,7 @@ class JournalController extends Controller
     public function mutationHistory($account, $startDate, $endDate, Request $request)
     {
         $journal = new Journal();
-        $startDate = $endDate ? Carbon::parse($endDate)->startOfDay() : Carbon::now()->startOfDay();
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $journal = new Journal();
