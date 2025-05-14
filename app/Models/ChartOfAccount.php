@@ -9,6 +9,14 @@ class ChartOfAccount extends Model
 {
     protected $guarded = ['id'];
 
+    protected $casts = [
+        'acc_code' => 'string',
+        'acc_name' => 'string',
+        'account_id' => 'integer',
+        'warehouse_id' => 'integer',
+        'st_balance' => 'integer',
+    ];
+
     public function debt()
     {
         return $this->hasMany(Journal::class, 'debt_code', 'acc_code');

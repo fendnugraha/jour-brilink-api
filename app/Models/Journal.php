@@ -14,6 +14,13 @@ class Journal extends Model
         'updated_at',
     ];
 
+    protected $casts = [
+        'amount' => 'float',
+        'fee_amount' => 'float',
+        'debt_code' => 'integer',
+        'cred_code' => 'integer',
+    ];
+
     public function scopeFilterJournals($query, array $filters)
     {
         $query->when(!empty($filters['search']), function ($query) use ($filters) {
