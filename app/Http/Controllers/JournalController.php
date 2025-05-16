@@ -225,6 +225,12 @@ class JournalController extends Controller
             'qty' => 'required|numeric',
             'price' => 'required|numeric',
             'product_id' => 'required',
+        ], [
+            'qty.required' => 'Jumlah voucher harus diisi.',
+            'qty.numeric' => 'Jumlah voucher harus berupa angka.',
+            'price.required' => 'Harga voucher harus diisi.',
+            'price.numeric' => 'Harga voucher harus berupa angka.',
+            'product_id.required' => 'Pilih produk terlebih dahulu.',
         ]);
 
         $journal = new Journal();
@@ -291,6 +297,11 @@ class JournalController extends Controller
         $request->validate([
             'cost' => 'required|numeric',
             'price' => 'required|numeric',
+        ], [
+            'cost.required' => 'Biaya deposit harus diisi.',
+            'cost.numeric' => 'Biaya deposit harus berupa angka.',
+            'price.required' => 'Harga deposit harus diisi.',
+            'price.numeric' => 'Harga deposit harus berupa angka.',
         ]);
 
         // $modal = $request->modal * $request->qty;
