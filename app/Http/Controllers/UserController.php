@@ -13,9 +13,13 @@ class UserController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('role.warehouse')->paginate(10)->onEachSide(0);
+        $users = User::with('role.warehouse')
+            ->when($request->search, function ($query, $search) {
+                $query->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('email', 'like', '%' . $search . '%');
+            })->paginate(10)->onEachSide(0);
 
         return new AccountResource($users, true, "Successfully fetched all users");
     }

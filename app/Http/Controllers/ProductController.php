@@ -14,7 +14,12 @@ class ProductController extends Controller
      */
     public function index(Request $request)
     {
-        $products = Product::where('name', 'like', '%' . $request->search . '%')->paginate(10)->onEachSide(0);
+        $products = Product::when($request->search, function ($query, $search) {
+            $query->where('name', 'like', '%' . $search . '%')
+                ->orWhere('code', 'like', '%' . $search . '%');
+        })
+            ->orderBy('name')
+            ->paginate(10)->onEachSide(0);
         return new AccountResource($products, true, "Successfully fetched products");
     }
 
