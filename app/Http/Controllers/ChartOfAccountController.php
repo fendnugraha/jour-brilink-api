@@ -352,12 +352,13 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
-    public function dailyDashboard($warehouse, $startDate, $endDate)
+    public function dailyDashboard(Request $request)
     {
-        $journal = new Journal();
+        $warehouse = $request->query('warehouse', 'all');
+        $startDate = $request->query('startDate') ? Carbon::parse($request->query('startDate'))->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $request->query('endDate') ? Carbon::parse($request->query('endDate'))->endOfDay() : Carbon::now()->endOfDay();
 
-        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
-        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+        $journal = new Journal();
 
         $transactions = $journal->selectRaw('debt_code, cred_code, SUM(amount) as total, warehouse_id')
             ->whereBetween('date_issued', [Carbon::create(0000, 1, 1, 0, 0, 0)->startOfDay(), $endDate])
@@ -365,7 +366,9 @@ class ChartOfAccountController extends Controller
             ->groupBy('debt_code', 'cred_code', 'warehouse_id')
             ->get();
 
-        $chartOfAccounts = ChartOfAccount::with(['account'])->where(fn($query) => $warehouse == "all" ? $query : $query->where('warehouse_id', $warehouse))->get();
+        $chartOfAccounts = ChartOfAccount::with(['account'])->when($warehouse !== 'all', function ($query) use ($warehouse) {
+            $query->where('warehouse_id', $warehouse);
+        })->get();
 
         foreach ($chartOfAccounts as $value) {
             $debit = $transactions->where('debt_code', $value->id)->sum('total');
