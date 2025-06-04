@@ -76,7 +76,7 @@ class FinanceController extends Controller
                 'payment_nth' => 0,
                 'finance_type' => $request->type,
                 'contact_id' => $request->contact_id,
-                'user_id' => auth()->user()->id,
+                'user_id' => auth()->id,
                 'account_code' => $request->type == 'Payable' ? $request->cred_code : $request->debt_code
             ]);
 
@@ -92,7 +92,7 @@ class FinanceController extends Controller
                 'rcv_pay' => $request->type,
                 'payment_status' => 0,
                 'payment_nth' => 0,
-                'user_id' => auth()->user()->id,
+                'user_id' => auth()->id,
                 'warehouse_id' => 1
             ]);
 
@@ -172,10 +172,10 @@ class FinanceController extends Controller
             $financeAmount = $finance->bill_amount > 0 ? $finance->bill_amount : $finance->payment_amount;
             $billOrPayment = $finance->bill_amount > 0 ? 'bill' : 'payment';
             $log->create([
-                'user_id' => auth()->user()->id,
+                'user_id' => auth()->id,
                 'warehouse_id' => 1,
                 'activity' => $finance->finance_type . ' deleted',
-                'description' => $finance->finance_type . ' with invoice: ' . $finance->invoice . ' ' . $billOrPayment . ' amount: ' . $financeAmount . ' deleted by ' . auth()->user()->name,
+                'description' => $finance->finance_type . ' with invoice: ' . $finance->invoice . ' ' . $billOrPayment . ' amount: ' . $financeAmount . ' deleted by ' . auth()->name,
             ]);
 
             DB::commit();
@@ -273,7 +273,7 @@ class FinanceController extends Controller
                 'payment_nth' => $payment_nth,
                 'finance_type' => $finance->finance_type,
                 'contact_id' => $request->contact_id,
-                'user_id' => auth()->user()->id,
+                'user_id' => auth()->id,
                 'account_code' => $request->account_id,
             ]);
 
@@ -289,7 +289,7 @@ class FinanceController extends Controller
                 'rcv_pay' => $this->getFinanceData($request->invoice)->finance_type,
                 'payment_status' => $payment_status,
                 'payment_nth' => $payment_nth,
-                'user_id' => auth()->user()->id,
+                'user_id' => auth()->id,
                 'warehouse_id' => 1
             ]);
 

@@ -376,9 +376,10 @@ class ChartOfAccountController extends Controller
                 : ($value->st_balance + $credit - $debit);
         }
 
-        $trxForSalesCount = $journal->whereBetween('date_issued', [$startDate, $endDate])
-            ->where(fn($query) => $warehouse == "all" ?
-                $query : $query->where('warehouse_id', $warehouse))
+        $trxForSalesCount = Journal::whereBetween('date_issued', [$startDate, $endDate])
+            ->when($warehouse !== 'all', function ($query) use ($warehouse) {
+                $query->where('warehouse_id', $warehouse);
+            })
             ->get();
 
         $dailyReport = [
