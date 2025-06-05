@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\AccountResource;
 
 class FinanceController extends Controller
@@ -76,7 +77,7 @@ class FinanceController extends Controller
                 'payment_nth' => 0,
                 'finance_type' => $request->type,
                 'contact_id' => $request->contact_id,
-                'user_id' => auth()->id,
+                'user_id' => Auth::user()->id,
                 'account_code' => $request->type == 'Payable' ? $request->cred_code : $request->debt_code
             ]);
 
@@ -92,7 +93,7 @@ class FinanceController extends Controller
                 'rcv_pay' => $request->type,
                 'payment_status' => 0,
                 'payment_nth' => 0,
-                'user_id' => auth()->id,
+                'user_id' => Auth::user()->id,
                 'warehouse_id' => 1
             ]);
 
