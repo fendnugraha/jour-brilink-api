@@ -327,76 +327,107 @@ class ChartOfAccountController extends Controller
 
     public function getCashBankBalance($warehouse, $endDate)
     {
-
-        $journal = new Journal();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $transactions = $journal->with(['debt', 'cred'])
-            ->selectRaw('debt_code, cred_code, SUM(amount) as total, warehouse_id')
-            ->whereBetween('date_issued', [Carbon::create(0000, 1, 1, 0, 0, 0)->startOfDay(), $endDate])
-            // ->where('warehouse_id', Auth::user()->warehouse_id) // Tambahkan filter di query
-            ->groupBy('debt_code', 'cred_code', 'warehouse_id')
+        $accountBalances = Journal::selectRaw("
+        chart.id as account_id,
+        chart.acc_name as account_name,
+        chart.st_balance,
+        acc.status,
+        SUM(CASE WHEN journals.debt_code = chart.id THEN journals.amount ELSE 0 END) as total_debit,
+        SUM(CASE WHEN journals.cred_code = chart.id THEN journals.amount ELSE 0 END) as total_credit
+    ")
+            ->join('chart_of_accounts as chart', function ($join) {
+                $join->on('journals.debt_code', '=', 'chart.id')
+                    ->orOn('journals.cred_code', '=', 'chart.id');
+            })
+            ->join('accounts as acc', 'chart.account_id', '=', 'acc.id')
+            ->where('chart.warehouse_id', $warehouse)
+            ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
+            ->orderBy('chart.acc_code', 'asc')
+            ->groupBy('chart.id', 'chart.st_balance', 'acc.status')
             ->get();
 
-        $chartOfAccounts = ChartOfAccount::with(['account'])->where('warehouse_id', $warehouse)->get();
 
-        foreach ($chartOfAccounts as $value) {
-            $debit = $transactions->where('debt_code', $value->id)->sum('total');
-            $credit = $transactions->where('cred_code', $value->id)->sum('total');
-
-            $value->balance = ($value->account->status == "D")
-                ? ($value->st_balance + $debit - $credit)
-                : ($value->st_balance + $credit - $debit);
+        foreach ($accountBalances as $acc) {
+            $acc->balance = $acc->status === 'D'
+                ? $acc->st_balance + $acc->total_debit - $acc->total_credit
+                : $acc->st_balance + $acc->total_credit - $acc->total_debit;
         }
 
-        return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
+        return new ChartOfAccountResource($accountBalances, true, "Successfully fetched chart of accounts");
     }
 
     public function dailyDashboard(Request $request)
     {
-        $warehouse = $request->query('warehouse', 'all');
+        $warehouse = $request->query('warehouse', null);
         $startDate = $request->query('startDate') ? Carbon::parse($request->query('startDate'))->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $request->query('endDate') ? Carbon::parse($request->query('endDate'))->endOfDay() : Carbon::now()->endOfDay();
 
-        $journal = new Journal();
-
-        $transactions = $journal->selectRaw('debt_code, cred_code, SUM(amount) as total, warehouse_id')
-            ->whereBetween('date_issued', [Carbon::create(0000, 1, 1, 0, 0, 0)->startOfDay(), $endDate])
-            // ->where('warehouse_id', $warehouse)
-            ->groupBy('debt_code', 'cred_code', 'warehouse_id')
+        $accountBalances = Journal::selectRaw("
+        chart.id as coa_id,
+        chart.account_id,
+        chart.st_balance,
+        acc.status,
+        SUM(CASE WHEN journals.debt_code = chart.id THEN journals.amount ELSE 0 END) as total_debit,
+        SUM(CASE WHEN journals.cred_code = chart.id THEN journals.amount ELSE 0 END) as total_credit
+    ")
+            ->join('chart_of_accounts as chart', function ($join) {
+                $join->on('journals.debt_code', '=', 'chart.id')
+                    ->orOn('journals.cred_code', '=', 'chart.id');
+            })
+            ->join('accounts as acc', 'chart.account_id', '=', 'acc.id')
+            ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
+            ->when($warehouse !== 'all', fn($q) => $q->where('chart.warehouse_id', $warehouse))
+            ->orderBy('chart.acc_code', 'asc')
+            ->groupBy('chart.id', 'chart.st_balance', 'acc.status')
             ->get();
 
-        $chartOfAccounts = ChartOfAccount::with(['account'])->when($warehouse !== 'all', function ($query) use ($warehouse) {
-            $query->where('warehouse_id', $warehouse);
-        })->get();
 
-        foreach ($chartOfAccounts as $value) {
-            $debit = $transactions->where('debt_code', $value->id)->sum('total');
-            $credit = $transactions->where('cred_code', $value->id)->sum('total');
-
-            $value->balance = ($value->account->status == "D")
-                ? ($value->st_balance + $debit - $credit)
-                : ($value->st_balance + $credit - $debit);
+        foreach ($accountBalances as $acc) {
+            $acc->balance = $acc->status === 'D'
+                ? $acc->st_balance + $acc->total_debit - $acc->total_credit
+                : $acc->st_balance + $acc->total_credit - $acc->total_debit;
         }
 
-        $trxForSalesCount = Journal::whereBetween('date_issued', [$startDate, $endDate])
-            ->when($warehouse !== 'all', function ($query) use ($warehouse) {
-                $query->where('warehouse_id', $warehouse);
-            })
-            ->get();
+        $trxForSalesCount = Journal::selectRaw('
+        trx_type,
+        SUM(amount) as total_amount,
+        SUM(fee_amount) as total_fee,
+        COUNT(*) as total_count
+    ')
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->when($warehouse !== 'all', fn($q) => $q->where('warehouse_id', $warehouse))
+            ->groupBy('trx_type')
+            ->get()
+            ->keyBy('trx_type');
+
+        $totalFee = Journal::selectRaw('
+                SUM(fee_amount) as total_fee,
+                SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee_positive
+            ')
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->when($warehouse !== 'all', fn($q) => $q->where('warehouse_id', $warehouse))
+            ->first();
+
 
         $dailyReport = [
-            'totalCash' => $chartOfAccounts->where('account_id', 1)->sum('balance'),
-            'totalBank' => $chartOfAccounts->where('account_id', 2)->sum('balance'),
-            'totalTransfer' => $trxForSalesCount->where('trx_type', 'Transfer Uang')->sum('amount'),
-            'totalCashWithdrawal' => $trxForSalesCount->where('trx_type', 'Tarik Tunai')->sum('amount'),
-            'totalCashDeposit' => $trxForSalesCount->where('trx_type', 'Deposit')->sum('amount'),
-            'totalVoucher' => $trxForSalesCount->where('trx_type', 'Voucher & SP')->sum('amount'),
-            'totalAccessories' => $trxForSalesCount->where('trx_type', 'Accessories')->sum('amount'),
-            'totalExpense' => $trxForSalesCount->where('trx_type', 'Pengeluaran')->sum('fee_amount'),
-            'totalFee' => $trxForSalesCount->where('fee_amount', '>', 0)->sum('fee_amount'),
-            'profit' => $trxForSalesCount->sum('fee_amount'),
-            'salesCount' => $trxForSalesCount->whereIn('trx_type', ['Transfer Uang', 'Tarik Tunai', 'Deposit', 'Voucher & SP'])->count(),
+            'totalCash' => (int) $accountBalances->where('account_id', 1)->sum('balance'),
+            'totalBank' => (int) $accountBalances->where('account_id', 2)->sum('balance'),
+            'totalTransfer' => (int) ($trxForSalesCount['Transfer Uang']->total_amount ?? 0),
+            'totalCashWithdrawal' => (int) ($trxForSalesCount['Tarik Tunai']->total_amount ?? 0),
+            'totalCashDeposit' => (int) ($trxForSalesCount['Deposit']->total_amount ?? 0),
+            'totalVoucher' => (int) ($trxForSalesCount['Voucher & SP']->total_amount ?? 0),
+            'totalAccessories' => (int) ($trxForSalesCount['Accessories']->total_amount ?? 0),
+            'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_amount ?? 0),
+            'totalFee' => (int) ($totalFee->total_fee ?? 0),
+            'profit' => (int) ($totalFee->total_fee_positive ?? 0),
+            'salesCount' => $trxForSalesCount->whereIn('trx_type', [
+                'Transfer Uang',
+                'Tarik Tunai',
+                'Deposit',
+                'Voucher & SP'
+            ])->count(),
         ];
 
         return new ChartOfAccountResource($dailyReport, true, "Successfully fetched chart of accounts");
