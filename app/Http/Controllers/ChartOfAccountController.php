@@ -345,7 +345,7 @@ class ChartOfAccountController extends Controller
             ->where('chart.warehouse_id', $warehouse)
             ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
             ->orderBy('chart.acc_code', 'asc')
-            ->groupBy('chart.id', 'chart.st_balance', 'acc.status')
+            ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.acc_name')
             ->get();
 
 
@@ -380,7 +380,7 @@ class ChartOfAccountController extends Controller
             ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
             ->when($warehouse !== 'all', fn($q) => $q->where('chart.warehouse_id', $warehouse))
             ->orderBy('chart.acc_code', 'asc')
-            ->groupBy('chart.id', 'chart.st_balance', 'acc.status')
+            ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.account_id')
             ->get();
 
 
