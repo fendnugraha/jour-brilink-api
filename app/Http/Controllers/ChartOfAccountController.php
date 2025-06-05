@@ -404,7 +404,8 @@ class ChartOfAccountController extends Controller
 
         $totalFee = Journal::selectRaw('
                 SUM(fee_amount) as total_fee,
-                SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee_positive
+                SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee_positive,
+                SUM(CASE WHEN fee_amount < 0 THEN fee_amount ELSE 0 END) as total_fee_negative
             ')
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->when($warehouse !== 'all', fn($q) => $q->where('warehouse_id', $warehouse))
@@ -424,9 +425,9 @@ class ChartOfAccountController extends Controller
             'totalCashDeposit' => (int) ($trxForSalesCount['Deposit']->total_amount ?? 0),
             'totalVoucher' => (int) ($trxForSalesCount['Voucher & SP']->total_amount ?? 0),
             'totalAccessories' => (int) ($trxForSalesCount['Accessories']->total_amount ?? 0),
-            'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_amount ?? 0),
-            'totalFee' => (int) ($totalFee->total_fee ?? 0),
-            'profit' => (int) ($totalFee->total_fee_positive ?? 0),
+            'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_fee ?? 0),
+            'totalFee' => (int) ($totalFee->total_fee_positive ?? 0),
+            'profit' => (int) ($totalFee->total_fee ?? 0),
             'salesCount' => $countTrxByType
 
         ];
