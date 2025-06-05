@@ -410,8 +410,18 @@ class ChartOfAccountController extends Controller
             ->when($warehouse !== 'all', fn($q) => $q->where('warehouse_id', $warehouse))
             ->first();
 
+        $countTrxByType = Journal::selectRaw('
+                trx_type,
+                COUNT(*) as total_count
+            ')
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->when($warehouse !== 'all', fn($q) => $q->where('warehouse_id', $warehouse))
+            ->whereIn('trx_type', ['Transfer Uang', 'Tarik Tunai', 'Deposit', 'Voucher & SP', 'Accessories'])
+            ->groupBy('trx_type')
+            ->count();
 
         $dailyReport = [
+            'trxForSalesCount' => $trxForSalesCount,
             'totalCash' => (int) $accountBalances->where('account_id', 1)->sum('balance'),
             'totalBank' => (int) $accountBalances->where('account_id', 2)->sum('balance'),
             'totalTransfer' => (int) ($trxForSalesCount['Transfer Uang']->total_amount ?? 0),
@@ -422,12 +432,8 @@ class ChartOfAccountController extends Controller
             'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_amount ?? 0),
             'totalFee' => (int) ($totalFee->total_fee ?? 0),
             'profit' => (int) ($totalFee->total_fee_positive ?? 0),
-            'salesCount' => $trxForSalesCount->whereIn('trx_type', [
-                'Transfer Uang',
-                'Tarik Tunai',
-                'Deposit',
-                'Voucher & SP'
-            ])->count(),
+            'salesCount' => $countTrxByType
+
         ];
 
         return new ChartOfAccountResource($dailyReport, true, "Successfully fetched chart of accounts");
