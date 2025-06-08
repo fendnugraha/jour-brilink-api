@@ -462,38 +462,47 @@ class JournalController extends Controller
 
     public function getWarehouseBalance($endDate)
     {
-        $journal = new Journal();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $transactions = $journal
-            ->with('warehouse', 'debt', 'cred')
-            ->selectRaw('debt_code, cred_code, SUM(amount) as total')
-            ->whereBetween('date_issued', [Carbon::create(0000, 1, 1, 0, 0, 0)->startOfDay(), $endDate])
-            ->groupBy('debt_code', 'cred_code')
+        $accountBalances = Journal::selectRaw("
+        chart.id as coa_id,
+        chart.acc_name as account_name,
+        chart.st_balance,
+        chart.warehouse_id as warehouse_id,
+        acc.status,
+        acc.id as acc_id,
+        SUM(CASE WHEN journals.debt_code = chart.id THEN journals.amount ELSE 0 END) as total_debit,
+        SUM(CASE WHEN journals.cred_code = chart.id THEN journals.amount ELSE 0 END) as total_credit
+    ")
+            ->join('chart_of_accounts as chart', function ($join) {
+                $join->on('journals.debt_code', '=', 'chart.id')
+                    ->orOn('journals.cred_code', '=', 'chart.id');
+            })
+            ->join('accounts as acc', 'chart.account_id', '=', 'acc.id')
+            ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
+            ->orderBy('chart.acc_code', 'asc')
+            ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.acc_name')
             ->get();
 
-        $chartOfAccounts = ChartOfAccount::with(['account'])->get();
 
-        foreach ($chartOfAccounts as $value) {
-            $debit = $transactions->where('debt_code', $value->id)->sum('total');
-            $credit = $transactions->where('cred_code', $value->id)->sum('total');
-
-            // @ts-ignore
-            $value->balance = ($value->account->status == "D") ? ($value->st_balance + $debit - $credit) : ($value->st_balance + $credit - $debit);
+        foreach ($accountBalances as $acc) {
+            $acc->balance = $acc->status === 'D'
+                ? $acc->st_balance + $acc->total_debit - $acc->total_credit
+                : $acc->st_balance + $acc->total_credit - $acc->total_debit;
         }
 
-        $sumtotalCash = $chartOfAccounts->whereIn('account_id', ['1']);
-        $sumtotalBank = $chartOfAccounts->whereIn('account_id', ['2']);
+        $sumtotalCash = $accountBalances->whereIn('acc_id', ['1']);
+        $sumtotalBank = $accountBalances->whereIn('acc_id', ['2']);
 
         $warehouse = Warehouse::where('status', 1)->orderBy('name', 'asc')->get();
 
         $data = [
-            'warehouse' => $warehouse->map(function ($warehouse) use ($chartOfAccounts) {
+            'warehouse' => $warehouse->map(function ($warehouse) use ($accountBalances) {
                 return [
                     'id' => $warehouse->id,
                     'name' => $warehouse->name,
-                    'cash' => $chartOfAccounts->whereIn('account_id', ['1'])->where('warehouse_id', $warehouse->id)->sum('balance'),
-                    'bank' => $chartOfAccounts->whereIn('account_id', ['2'])->where('warehouse_id', $warehouse->id)->sum('balance')
+                    'cash' => $accountBalances->whereIn('acc_id', ['1'])->where('warehouse_id', $warehouse->id)->sum('balance'),
+                    'bank' => $accountBalances->whereIn('acc_id', ['2'])->where('warehouse_id', $warehouse->id)->sum('balance')
                 ];
             }),
             'totalCash' => $sumtotalCash->sum('balance'),
