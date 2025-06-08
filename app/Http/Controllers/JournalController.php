@@ -481,7 +481,7 @@ class JournalController extends Controller
             ->join('accounts as acc', 'chart.account_id', '=', 'acc.id')
             ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
             ->orderBy('chart.acc_code', 'asc')
-            ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.acc_name')
+            ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.acc_name', 'chart.warehouse_id', 'acc.id')
             ->get();
 
 
