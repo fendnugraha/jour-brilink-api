@@ -173,10 +173,10 @@ class FinanceController extends Controller
             $financeAmount = $finance->bill_amount > 0 ? $finance->bill_amount : $finance->payment_amount;
             $billOrPayment = $finance->bill_amount > 0 ? 'bill' : 'payment';
             $log->create([
-                'user_id' => auth()->id,
+                'user_id' => auth()->user()->id,
                 'warehouse_id' => 1,
                 'activity' => $finance->finance_type . ' deleted',
-                'description' => $finance->finance_type . ' with invoice: ' . $finance->invoice . ' ' . $billOrPayment . ' amount: ' . $financeAmount . ' deleted by ' . auth()->name,
+                'description' => $finance->finance_type . ' with invoice: ' . $finance->invoice . ' ' . $billOrPayment . ' amount: ' . $financeAmount . ' deleted by ' . auth()->user()->name,
             ]);
 
             DB::commit();
