@@ -174,7 +174,6 @@ class JournalController extends Controller
 
     public function createTransfer(Request $request)
     {
-        $journal = new Journal();
         $request->validate([
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id',
@@ -192,8 +191,8 @@ class JournalController extends Controller
 
         DB::beginTransaction();
         try {
-            $journal->create([
-                'invoice' => $journal->invoice_journal(),  // Menggunakan metode statis untuk invoice
+            $journal = Journal::create([
+                'invoice' => Journal::invoice_journal(),  // Menggunakan metode statis untuk invoice
                 'date_issued' => now(),
                 'debt_code' => $request->debt_code,
                 'cred_code' => $request->cred_code,
@@ -208,8 +207,8 @@ class JournalController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Journal created successfully',
-                'journal' => $journal
+                'message' => 'Transaksi berhasil',
+                'journal' => $journal->load('debt', 'cred')
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -347,7 +346,6 @@ class JournalController extends Controller
 
     public function createMutation(Request $request)
     {
-        $journal = new Journal();
         $request->validate([
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id',
@@ -364,8 +362,8 @@ class JournalController extends Controller
         $hqCashAccount = Warehouse::find(1)->chart_of_account_id;
         DB::beginTransaction();
         try {
-            $journal->create([
-                'invoice' => $journal->invoice_journal(),  // Menggunakan metode statis untuk invoice
+            $journal = Journal::create([
+                'invoice' => Journal::invoice_journal(),  // Menggunakan metode statis untuk invoice
                 'date_issued' => now(),
                 'debt_code' => $request->debt_code,
                 'cred_code' => $request->cred_code,
@@ -378,8 +376,8 @@ class JournalController extends Controller
             ]);
 
             if ($request->admin_fee > 0) {
-                $journal->create([
-                    'invoice' => $journal->invoice_journal(),  // Menggunakan metode statis untuk invoice
+                Journal::create([
+                    'invoice' => Journal::invoice_journal(),  // Menggunakan metode statis untuk invoice
                     'date_issued' => now(),
                     'debt_code' => $hqCashAccount,
                     'cred_code' => $request->cred_code,
@@ -396,7 +394,7 @@ class JournalController extends Controller
 
             return response()->json([
                 'message' => 'Mutasi Kas berhasil',
-                'journal' => $journal
+                'journal' => $journal->load(['debt', 'cred'])
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
@@ -464,49 +462,90 @@ class JournalController extends Controller
     {
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $accountBalances = Journal::selectRaw("
+        $rawQuery = "
+    SELECT
         chart.id as coa_id,
         chart.acc_name as account_name,
         chart.st_balance,
-        chart.warehouse_id as warehouse_id,
+        chart.warehouse_id,
         acc.status,
         acc.id as acc_id,
-        SUM(CASE WHEN journals.debt_code = chart.id THEN journals.amount ELSE 0 END) as total_debit,
-        SUM(CASE WHEN journals.cred_code = chart.id THEN journals.amount ELSE 0 END) as total_credit
-    ")
-            ->join('chart_of_accounts as chart', function ($join) {
-                $join->on('journals.debt_code', '=', 'chart.id')
-                    ->orOn('journals.cred_code', '=', 'chart.id');
-            })
-            ->join('accounts as acc', 'chart.account_id', '=', 'acc.id')
-            ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
-            ->orderBy('chart.acc_code', 'asc')
-            ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.acc_name', 'chart.warehouse_id', 'acc.id')
-            ->get();
+        SUM(journals.amount) as total_debit,
+        0 as total_credit
+    FROM journals
+    JOIN chart_of_accounts as chart ON journals.debt_code = chart.id
+    JOIN accounts as acc ON chart.account_id = acc.id
+    WHERE journals.date_issued <= ?
+    GROUP BY chart.id, chart.acc_name, chart.st_balance, chart.warehouse_id, acc.status, acc.id
 
+    UNION ALL
 
-        foreach ($accountBalances as $acc) {
+    SELECT
+        chart.id as coa_id,
+        chart.acc_name as account_name,
+        chart.st_balance,
+        chart.warehouse_id,
+        acc.status,
+        acc.id as acc_id,
+        0 as total_debit,
+        SUM(journals.amount) as total_credit
+    FROM journals
+    JOIN chart_of_accounts as chart ON journals.cred_code = chart.id
+    JOIN accounts as acc ON chart.account_id = acc.id
+    WHERE journals.date_issued <= ?
+    GROUP BY chart.id, chart.acc_name, chart.st_balance, chart.warehouse_id, acc.status, acc.id
+";
+
+        $rawData = DB::select($rawQuery, [$endDate, $endDate]);
+
+        // Gabungkan hasil UNION menjadi koleksi
+        $merged = collect();
+
+        foreach ($rawData as $row) {
+            $key = $row->coa_id;
+
+            if (!$merged->has($key)) {
+                $merged[$key] = (object)[
+                    'coa_id' => $row->coa_id,
+                    'account_name' => $row->account_name,
+                    'st_balance' => $row->st_balance,
+                    'warehouse_id' => $row->warehouse_id,
+                    'status' => $row->status,
+                    'acc_id' => $row->acc_id,
+                    'total_debit' => 0,
+                    'total_credit' => 0,
+                ];
+            }
+
+            $merged[$key]->total_debit += $row->total_debit;
+            $merged[$key]->total_credit += $row->total_credit;
+        }
+
+        // Hitung saldo
+        foreach ($merged as $acc) {
             $acc->balance = $acc->status === 'D'
                 ? $acc->st_balance + $acc->total_debit - $acc->total_credit
                 : $acc->st_balance + $acc->total_credit - $acc->total_debit;
         }
 
-        $sumtotalCash = $accountBalances->whereIn('acc_id', ['1']);
-        $sumtotalBank = $accountBalances->whereIn('acc_id', ['2']);
+        // Filter cash/bank
+        $sumtotalCash = $merged->where('acc_id', 1);
+        $sumtotalBank = $merged->where('acc_id', 2);
 
-        $warehouse = Warehouse::where('status', 1)->orderBy('name', 'asc')->get();
+        // Ambil warehouse
+        $warehouses = Warehouse::where('status', 1)->orderBy('name')->get();
 
         $data = [
-            'warehouse' => $warehouse->map(function ($warehouse) use ($accountBalances) {
+            'warehouse' => $warehouses->map(function ($w) use ($merged) {
                 return [
-                    'id' => $warehouse->id,
-                    'name' => $warehouse->name,
-                    'cash' => $accountBalances->whereIn('acc_id', ['1'])->where('warehouse_id', $warehouse->id)->sum('balance'),
-                    'bank' => $accountBalances->whereIn('acc_id', ['2'])->where('warehouse_id', $warehouse->id)->sum('balance')
+                    'id' => $w->id,
+                    'name' => $w->name,
+                    'cash' => $merged->where('acc_id', 1)->where('warehouse_id', $w->id)->sum('balance'),
+                    'bank' => $merged->where('acc_id', 2)->where('warehouse_id', $w->id)->sum('balance'),
                 ];
             }),
             'totalCash' => $sumtotalCash->sum('balance'),
-            'totalBank' => $sumtotalBank->sum('balance')
+            'totalBank' => $sumtotalBank->sum('balance'),
         ];
 
         return response()->json([
