@@ -8,5 +8,5 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote')->hourly();
 
-Schedule::command('accounting:update-balances')->dailyAt('23:59');
-// Schedule::command('accounting:update-balances')->everyMinute();
+// Schedule::command('accounting:update-balances')->dailyAt('23:59');
+Schedule::command('accounting:update-balances')->everyMinute();
