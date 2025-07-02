@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Model;
 
 class Journal extends Model
@@ -246,5 +247,136 @@ class Journal extends Model
         $result = $cashAccount->whereIn('account_id', [1, 2])->sum('balance');
 
         return $result;
+    }
+
+    public static function _updateBalancesDirectly(string $dateToUpdate): void
+    {
+        // Parsing tanggal untuk memastikan format yang benar
+        $targetDate = Carbon::parse($dateToUpdate);
+
+        try {
+            $chartOfAccounts = ChartOfAccount::all();
+
+            foreach ($chartOfAccounts as $chartOfAccount) {
+                // Mengambil saldo awal dari properti model chartOfAccount->st_balance
+                // Ini adalah saldo kumulatif dari awal waktu hingga hari sebelumnya
+                $initBalance = $chartOfAccount->st_balance ?? 0.00;
+
+                // Menghitung total debit langsung dari database hingga targetDate
+                $totalDebit = Journal::where('debt_code', $chartOfAccount->id)
+                    ->where('date_issued', '<=', $targetDate->toDateString())
+                    ->sum('amount');
+
+                // Menghitung total credit langsung dari database hingga targetDate
+                $totalCredit = Journal::where('cred_code', $chartOfAccount->id)
+                    ->where('date_issued', '<=', $targetDate->toDateString())
+                    ->sum('amount');
+
+                // Mengambil normal balance dari relasi 'account'
+                $normalBalance = $chartOfAccount->account->status ?? '';
+
+                $endingBalance = 0;
+                if ($normalBalance === 'D') { // Asumsi 'D' untuk Debit
+                    $endingBalance = $initBalance + $totalDebit - $totalCredit;
+                } else { // Asumsi 'C' untuk Credit
+                    $endingBalance = $initBalance + $totalCredit - $totalDebit;
+                }
+
+                // Simpan atau perbarui saldo di tabel account_balances
+                AccountBalance::updateOrCreate(
+                    [
+                        'chart_of_account_id' => $chartOfAccount->id,
+                        'balance_date' => $targetDate->toDateString(),
+                    ],
+                    [
+                        'ending_balance' => $endingBalance,
+                    ]
+                );
+            }
+        } catch (\Exception $e) {
+            Log::error("Error during direct balance update for date {$targetDate->toDateString()}: {$e->getMessage()}", [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    public static function balancesByWarehouse($warehouseId, $endDate)
+    {
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+        $previousDate = $endDate->copy()->subDay()->toDateString();
+
+        $chartOfAccounts = ChartOfAccount::with('account')
+            ->when($warehouseId !== 'all', function ($query) use ($warehouseId) {
+                $query->where('warehouse_id', $warehouseId);
+            })->whereIn('account_id', [1, 2])
+            ->get();
+
+        $allAccountIds = $chartOfAccounts->pluck('id')->toArray();
+
+        $previousDayBalances = AccountBalance::whereIn('chart_of_account_id', $allAccountIds)
+            ->where('balance_date', $previousDate)
+            ->pluck('ending_balance', 'chart_of_account_id')
+            ->toArray();
+
+        $debit = Journal::selectRaw('debt_code as account_id, SUM(amount) as total_amount')
+            ->whereIn('debt_code', $allAccountIds)
+            ->whereBetween('date_issued', [$previousDate, $endDate])
+            ->groupBy('debt_code')
+            ->pluck('total_amount', 'account_id')
+            ->toArray();
+
+        $credit = Journal::selectRaw('cred_code as account_id, SUM(amount) as total_amount')
+            ->whereIn('cred_code', $allAccountIds)
+            ->whereBetween('date_issued', [$previousDate, $endDate])
+            ->groupBy('cred_code')
+            ->pluck('total_amount', 'account_id')
+            ->toArray();
+
+        $missingDatesToUpdate = [];
+        foreach ($allAccountIds as $accountId) {
+            if (!isset($previousDayBalances[$accountId])) {
+                $missingDatesToUpdate[$previousDate] = true;
+            }
+        }
+
+        foreach (array_keys($missingDatesToUpdate) as $date) {
+            Log::info("Missing balance update for date: {$date}");
+            Journal::_updateBalancesDirectly($date);
+        }
+
+        if (!empty($missingDatesToUpdate)) {
+            $previousDayBalances = AccountBalance::whereIn('chart_of_account_id', $allAccountIds)
+                ->where('balance_date', $previousDate)
+                ->pluck('ending_balance', 'chart_of_account_id')
+                ->toArray();
+        }
+
+        foreach ($chartOfAccounts as $chartOfAccount) {
+            // Mengambil saldo awal dari previousDayBalances atau fallback ke st_balance
+            // Menggunakan chart_of_account_id untuk look-up di previousDayBalances
+            $initBalance = $previousDayBalances[$chartOfAccount->id];
+            $normalBalance = $chartOfAccount->account->status ?? '';
+
+            // Mengambil debit/credit hari ini dari pre-fetched arrays
+            $debitToday = $debit[$chartOfAccount->id] ?? 0.00;
+            $creditToday = $credit[$chartOfAccount->id] ?? 0.00;
+
+            // Hitung saldo akhir
+            $chartOfAccount->balance = $initBalance + ($normalBalance === 'D' ? $debitToday - $creditToday : $creditToday - $debitToday);
+        }
+
+        $sumtotalCash = $chartOfAccounts->filter(function ($coa) {
+            return ($coa->account && $coa->account->id === 1); // Asumsi acc_id 1 untuk Cash
+        });
+        $sumtotalBank = $chartOfAccounts->filter(function ($coa) {
+            return ($coa->account && $coa->account->id === 2); // Asumsi acc_id 2 untuk Bank
+        });
+
+        return [
+            'chartOfAccounts' => $chartOfAccounts,
+            'sumtotalBank' => $sumtotalBank->sum('balance'),
+            'sumtotalCash' => $sumtotalCash->sum('balance'),
+        ];
     }
 }

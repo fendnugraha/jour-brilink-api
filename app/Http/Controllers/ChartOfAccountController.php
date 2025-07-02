@@ -326,7 +326,7 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
-    public function getCashBankBalance($warehouse, $endDate)
+    public function getCashBankBalancex($warehouse, $endDate)
     {
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
         $previousDate = Carbon::parse($endDate)->subDays()->toDateString();
@@ -385,37 +385,24 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
+    public function getCashBankBalance($warehouse, $endDate)
+    {
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+        $previousDate = Carbon::parse($endDate)->subDays()->toDateString();
+
+        $chartOfAccounts = Journal::balancesByWarehouse($warehouse, $endDate);
+
+
+        return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
+    }
+
     public function dailyDashboard(Request $request)
     {
         $warehouse = $request->query('warehouse', null);
         $startDate = $request->query('startDate') ? Carbon::parse($request->query('startDate'))->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $request->query('endDate') ? Carbon::parse($request->query('endDate'))->endOfDay() : Carbon::now()->endOfDay();
 
-        $accountBalances = Journal::selectRaw("
-        chart.id as coa_id,
-        chart.account_id,
-        chart.st_balance,
-        acc.status,
-        SUM(CASE WHEN journals.debt_code = chart.id THEN journals.amount ELSE 0 END) as total_debit,
-        SUM(CASE WHEN journals.cred_code = chart.id THEN journals.amount ELSE 0 END) as total_credit
-    ")
-            ->join('chart_of_accounts as chart', function ($join) {
-                $join->on('journals.debt_code', '=', 'chart.id')
-                    ->orOn('journals.cred_code', '=', 'chart.id');
-            })
-            ->join('accounts as acc', 'chart.account_id', '=', 'acc.id')
-            ->whereBetween('journals.date_issued', [Carbon::create(0000, 1, 1), $endDate])
-            ->when($warehouse !== 'all', fn($q) => $q->where('chart.warehouse_id', $warehouse))
-            ->orderBy('chart.acc_code', 'asc')
-            ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.account_id')
-            ->get();
-
-
-        foreach ($accountBalances as $acc) {
-            $acc->balance = $acc->status === 'D'
-                ? $acc->st_balance + $acc->total_debit - $acc->total_credit
-                : $acc->st_balance + $acc->total_credit - $acc->total_debit;
-        }
+        $warehouseBalance = Journal::balancesByWarehouse($warehouse, $endDate);
 
         $trxForSalesCount = Journal::selectRaw('
         trx_type,
@@ -445,8 +432,8 @@ class ChartOfAccountController extends Controller
 
 
         $dailyReport = [
-            'totalCash' => (int) $accountBalances->where('account_id', 1)->sum('balance'),
-            'totalBank' => (int) $accountBalances->where('account_id', 2)->sum('balance'),
+            'totalCash' => (int) $warehouseBalance['sumtotalCash'],
+            'totalBank' => (int) $warehouseBalance['sumtotalBank'],
             'totalTransfer' => (int) ($trxForSalesCount['Transfer Uang']->total_amount ?? 0),
             'totalCashWithdrawal' => (int) ($trxForSalesCount['Tarik Tunai']->total_amount ?? 0),
             'totalCashDeposit' => (int) ($trxForSalesCount['Deposit']->total_amount ?? 0),

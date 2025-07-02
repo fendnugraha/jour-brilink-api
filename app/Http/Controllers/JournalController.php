@@ -12,6 +12,7 @@ use App\Models\ChartOfAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
+use App\Models\AccountBalance;
 use App\Models\LogActivity;
 
 class JournalController extends Controller
@@ -107,7 +108,7 @@ class JournalController extends Controller
 
             if ($isAmountChanged || $isFeeAmountChanged) {
                 $log->create([
-                    'user_id' => auth()->id(),
+                    'user_id' => auth()->user()->id(),
                     'warehouse_id' => $journal->warehouse_id,
                     'activity' => 'Updated Journal',
                     'description' => 'Updated Journal with ID: ' . $journal->id . '. ' . implode(' ', $descriptionParts),
@@ -461,87 +462,118 @@ class JournalController extends Controller
     public function getWarehouseBalance($endDate)
     {
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+        $previousDate = $endDate->copy()->subDay()->toDateString(); // Tanggal untuk mencari saldo awal
 
-        $rawQuery = "
-    SELECT
-        chart.id as coa_id,
-        chart.acc_name as account_name,
-        chart.st_balance,
-        chart.warehouse_id,
-        acc.status,
-        acc.id as acc_id,
-        SUM(journals.amount) as total_debit,
-        0 as total_credit
-    FROM journals
-    JOIN chart_of_accounts as chart ON journals.debt_code = chart.id
-    JOIN accounts as acc ON chart.account_id = acc.id
-    WHERE journals.date_issued <= ?
-    GROUP BY chart.id, chart.acc_name, chart.st_balance, chart.warehouse_id, acc.status, acc.id
+        // --- Perbaikan Kinerja: Pre-fetch data jurnal dan saldo sebelumnya dalam satu/dua kueri ---
 
-    UNION ALL
+        // 1. Ambil semua ChartOfAccount yang relevan
+        $chartOfAccounts = ChartOfAccount::with('account')->get();
 
-    SELECT
-        chart.id as coa_id,
-        chart.acc_name as account_name,
-        chart.st_balance,
-        chart.warehouse_id,
-        acc.status,
-        acc.id as acc_id,
-        0 as total_debit,
-        SUM(journals.amount) as total_credit
-    FROM journals
-    JOIN chart_of_accounts as chart ON journals.cred_code = chart.id
-    JOIN accounts as acc ON chart.account_id = acc.id
-    WHERE journals.date_issued <= ?
-    GROUP BY chart.id, chart.acc_name, chart.st_balance, chart.warehouse_id, acc.status, acc.id
-";
+        Log::info("Found " . $chartOfAccounts->count() . " chart of accounts.");
 
-        $rawData = DB::select($rawQuery, [$endDate, $endDate]);
+        // Dapatkan semua ID akun untuk kueri berikutnya
+        $allAccountIds = $chartOfAccounts->pluck('id')->toArray();
 
-        // Gabungkan hasil UNION menjadi koleksi
-        $merged = collect();
+        // 2. Pre-fetch saldo akhir hari sebelumnya untuk SEMUA akun yang relevan
+        // Menggunakan array asosiatif [chart_of_account_id => ending_balance] untuk look-up cepat
+        $previousDayBalances = AccountBalance::whereIn('chart_of_account_id', $allAccountIds)
+            ->where('balance_date', $previousDate)
+            ->pluck('ending_balance', 'chart_of_account_id')
+            ->toArray();
+        Log::info("Fetched " . count($previousDayBalances) . " previous day balances for {$previousDate}.");
 
-        foreach ($rawData as $row) {
-            $key = $row->coa_id;
 
-            if (!$merged->has($key)) {
-                $merged[$key] = (object)[
-                    'coa_id' => $row->coa_id,
-                    'account_name' => $row->account_name,
-                    'st_balance' => $row->st_balance,
-                    'warehouse_id' => $row->warehouse_id,
-                    'status' => $row->status,
-                    'acc_id' => $row->acc_id,
-                    'total_debit' => 0,
-                    'total_credit' => 0,
-                ];
+        // 3. Pre-fetch total debit aktivitas untuk HANYA tanggal $endDate
+        $dailyDebits = Journal::selectRaw('debt_code as account_id, SUM(amount) as total_amount')
+            ->whereIn('debt_code', $allAccountIds)
+            ->whereBetween('date_issued', [$previousDate, $endDate]) // HANYA AKTIVITAS HARI INI
+            ->groupBy('debt_code')
+            ->pluck('total_amount', 'account_id')
+            ->toArray();
+        Log::info("Fetched " . count($dailyDebits) . " daily debit sums for {$endDate->toDateString()}.");
+
+
+        // 4. Pre-fetch total credit aktivitas untuk HANYA tanggal $endDate
+        $dailyCredits = Journal::selectRaw('cred_code as account_id, SUM(amount) as total_amount')
+            ->whereIn('cred_code', $allAccountIds)
+            ->whereBetween('date_issued', [$previousDate, $endDate]) // HANYA AKTIVITAS HARI INI
+            ->groupBy('cred_code')
+            ->pluck('total_amount', 'account_id')
+            ->toArray();
+        Log::info("Fetched " . count($dailyCredits) . " daily credit sums for {$endDate->toDateString()}.");
+
+
+        // --- Logic untuk memeriksa dan memicu update saldo yang hilang ---
+        $missingDatesToUpdate = [];
+        foreach ($allAccountIds as $accountId) {
+            // Memeriksa keberadaan saldo menggunakan chart_of_account_id
+            if (!isset($previousDayBalances[$accountId])) {
+                // Jika saldo hari sebelumnya tidak ditemukan di account_balances
+                $missingDatesToUpdate[$previousDate] = true; // Tambahkan tanggal ini ke daftar
+                Log::warning("Missing AccountBalance record for account ID {$accountId} on {$previousDate}. Will trigger update.");
             }
-
-            $merged[$key]->total_debit += $row->total_debit;
-            $merged[$key]->total_credit += $row->total_credit;
         }
 
-        // Hitung saldo
-        foreach ($merged as $acc) {
-            $acc->balance = $acc->status === 'D'
-                ? $acc->st_balance + $acc->total_debit - $acc->total_credit
-                : $acc->st_balance + $acc->total_credit - $acc->total_debit;
+        foreach (array_keys($missingDatesToUpdate) as $date) {
+            Log::info("Calling _updateBalancesDirectly for missing date: {$date}");
+            // Memanggil fungsi baru secara langsung di controller
+            $this->_updateBalancesDirectly($date);
+        }
+        // --- Akhir logic pemicu ---
+
+        // --- PENTING: Re-fetch previousDayBalances setelah _updateBalancesDirectly dipanggil ---
+        // Ini memastikan bahwa jika _updateBalancesDirectly baru saja menambahkan data,
+        // data tersebut akan tersedia untuk perhitungan saldo selanjutnya dalam permintaan ini.
+        if (!empty($missingDatesToUpdate)) {
+            Log::info("Re-fetching previous day balances after direct updates.");
+            $previousDayBalances = AccountBalance::whereIn('chart_of_account_id', $allAccountIds)
+                ->where('balance_date', $previousDate)
+                ->pluck('ending_balance', 'chart_of_account_id')
+                ->toArray();
+            Log::info("Re-fetched " . count($previousDayBalances) . " previous day balances.");
         }
 
-        // Filter cash/bank
-        $sumtotalCash = $merged->where('acc_id', 1);
-        $sumtotalBank = $merged->where('acc_id', 2);
+
+        // --- Perhitungan Saldo per Akun ---
+        foreach ($chartOfAccounts as $chartOfAccount) {
+            // Mengambil saldo awal dari previousDayBalances atau fallback ke st_balance
+            // Menggunakan chart_of_account_id untuk look-up di previousDayBalances
+            $initBalance = $previousDayBalances[$chartOfAccount->id] ?? ($chartOfAccount->st_balance ?? 0.00);
+            $normalBalance = $chartOfAccount->account->status ?? '';
+
+            // Mengambil debit/credit hari ini dari pre-fetched arrays
+            $debitToday = $dailyDebits[$chartOfAccount->id] ?? 0.00;
+            $creditToday = $dailyCredits[$chartOfAccount->id] ?? 0.00;
+
+            // Hitung saldo akhir
+            $chartOfAccount->balance = $initBalance + ($normalBalance === 'D' ? $debitToday - $creditToday : $creditToday - $debitToday);
+        }
+
+        // --- Filter cash/bank accounts ---
+        // Filter di sini harus menggunakan relasi 'account' karena acc_id ada di sana
+        $sumtotalCash = $chartOfAccounts->filter(function ($coa) {
+            return ($coa->account && $coa->account->id === 1); // Asumsi acc_id 1 untuk Cash
+        });
+        $sumtotalBank = $chartOfAccounts->filter(function ($coa) {
+            return ($coa->account && $coa->account->id === 2); // Asumsi acc_id 2 untuk Bank
+        });
+
 
         // Ambil warehouse
         $warehouses = Warehouse::where('status', 1)->orderBy('name')->get();
 
         $data = [
-            'warehouse' => $warehouses->map(function ($w) use ($merged) {
+            'warehouse' => $warehouses->map(function ($w) use ($chartOfAccounts) {
                 return [
                     'id' => $w->id,
                     'name' => $w->name,
-                    'cash' => $merged->where('acc_id', 1)->where('warehouse_id', $w->id)->sum('balance'),
-                    'bank' => $merged->where('acc_id', 2)->where('warehouse_id', $w->id)->sum('balance'),
+                    // Filter di sini juga harus menggunakan relasi 'account'
+                    'cash' => $chartOfAccounts->filter(function ($coa) use ($w) {
+                        return ($coa->account && $coa->account->id === 1 && $coa->warehouse_id === $w->id);
+                    })->sum('balance'),
+                    'bank' => $chartOfAccounts->filter(function ($coa) use ($w) {
+                        return ($coa->account && $coa->account->id === 2 && $coa->warehouse_id === $w->id);
+                    })->sum('balance'),
                 ];
             }),
             'totalCash' => $sumtotalCash->sum('balance'),
@@ -552,6 +584,73 @@ class JournalController extends Controller
             'success' => true,
             'data' => $data
         ], 200);
+    }
+
+    /**
+     * Menghitung dan memperbarui saldo akun di tabel account_balances untuk tanggal tertentu.
+     * Ini adalah replika logika dari Artisan Command UpdateAccountBalances,
+     * dieksekusi secara langsung dalam controller.
+     *
+     * @param string $dateToUpdate Tanggal untuk memperbarui saldo (YYYY-MM-DD).
+     * @return void
+     */
+    protected function _updateBalancesDirectly(string $dateToUpdate): void
+    {
+        // Parsing tanggal untuk memastikan format yang benar
+        $targetDate = Carbon::parse($dateToUpdate);
+
+        Log::info("Directly updating account balances for date: {$targetDate->toDateString()}...");
+
+        try {
+            $chartOfAccounts = ChartOfAccount::all();
+
+            Log::info("Total accounts found for direct update: " . $chartOfAccounts->count());
+
+            foreach ($chartOfAccounts as $chartOfAccount) {
+                // Mengambil saldo awal dari properti model chartOfAccount->st_balance
+                // Ini adalah saldo kumulatif dari awal waktu hingga hari sebelumnya
+                $initBalance = $chartOfAccount->st_balance ?? 0.00;
+
+                // Menghitung total debit langsung dari database hingga targetDate
+                $totalDebit = Journal::where('debt_code', $chartOfAccount->id)
+                    ->where('date_issued', '<=', $targetDate->toDateString())
+                    ->sum('amount');
+
+                // Menghitung total credit langsung dari database hingga targetDate
+                $totalCredit = Journal::where('cred_code', $chartOfAccount->id)
+                    ->where('date_issued', '<=', $targetDate->toDateString())
+                    ->sum('amount');
+
+                // Mengambil normal balance dari relasi 'account'
+                $normalBalance = $chartOfAccount->account->status ?? '';
+
+                $endingBalance = 0;
+                if ($normalBalance === 'D') { // Asumsi 'D' untuk Debit
+                    $endingBalance = $initBalance + $totalDebit - $totalCredit;
+                } else { // Asumsi 'C' untuk Credit
+                    $endingBalance = $initBalance + $totalCredit - $totalDebit;
+                }
+
+                // Simpan atau perbarui saldo di tabel account_balances
+                AccountBalance::updateOrCreate(
+                    [
+                        'chart_of_account_id' => $chartOfAccount->id,
+                        'balance_date' => $targetDate->toDateString(),
+                    ],
+                    [
+                        'ending_balance' => $endingBalance,
+                    ]
+                );
+                Log::debug("Direct update: Account {$chartOfAccount->acc_code} ({$chartOfAccount->acc_name}): Balance updated to {$endingBalance} for {$targetDate->toDateString()}");
+            }
+
+            Log::info("Direct account balances update completed for {$targetDate->toDateString()}.");
+        } catch (\Exception $e) {
+            Log::error("Error during direct balance update for date {$targetDate->toDateString()}: {$e->getMessage()}", [
+                'exception' => $e,
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
     }
 
     public function getRevenueReport($startDate, $endDate)
