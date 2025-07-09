@@ -116,7 +116,7 @@ class UserController extends Controller
             'name' => 'required|min:3|max:90',
             'email' => 'required|email|unique:users,email,' . $id,
             'warehouse' => 'required|exists:warehouses,id',
-            'role' => 'required|in:Administrator,Staff'
+            'role' => 'required|in:Administrator,Kasir'
         ]);
 
         DB::beginTransaction();
