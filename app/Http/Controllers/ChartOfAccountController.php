@@ -138,7 +138,7 @@ class ChartOfAccountController extends Controller
     public function destroy($id)
     {
         $chartOfAccount = ChartOfAccount::find($id);
-
+        AccountBalance::where('chart_of_account_id', $chartOfAccount->id)->delete();
         if ($chartOfAccount->is_locked) {
             return response()->json([
                 'message' => 'Chart of account is locked and cannot be deleted.',
