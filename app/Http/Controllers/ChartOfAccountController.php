@@ -431,19 +431,46 @@ class ChartOfAccountController extends Controller
             ->count();
 
 
+        // $dailyReport = [
+        //     'totalCash' => (int) $warehouseBalance['sumtotalCash'],
+        //     'totalBank' => (int) $warehouseBalance['sumtotalBank'],
+        //     'totalTransfer' => (int) ($trxForSalesCount['Transfer Uang']->total_amount ?? 0),
+        //     'totalCashWithdrawal' => (int) ($trxForSalesCount['Tarik Tunai']->total_amount ?? 0),
+        //     'totalCashDeposit' => (int) ($trxForSalesCount['Deposit']->total_amount ?? 0),
+        //     'totalVoucher' => (int) ($trxForSalesCount['Voucher & SP']->total_amount ?? 0),
+        //     'totalAccessories' => (int) ($trxForSalesCount['Accessories']->total_amount ?? 0),
+        //     'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_fee ?? 0),
+        //     'totalFee' => (int) ($totalFee->total_fee_positive ?? 0),
+        //     'profit' => (int) ($totalFee->total_fee ?? 0),
+        //     'salesCount' => $countTrxByType
+        // ];
         $dailyReport = [
             'totalCash' => (int) $warehouseBalance['sumtotalCash'],
             'totalBank' => (int) $warehouseBalance['sumtotalBank'],
-            'totalTransfer' => (int) ($trxForSalesCount['Transfer Uang']->total_amount ?? 0),
-            'totalCashWithdrawal' => (int) ($trxForSalesCount['Tarik Tunai']->total_amount ?? 0),
-            'totalCashDeposit' => (int) ($trxForSalesCount['Deposit']->total_amount ?? 0),
-            'totalVoucher' => (int) ($trxForSalesCount['Voucher & SP']->total_amount ?? 0),
-            'totalAccessories' => (int) ($trxForSalesCount['Accessories']->total_amount ?? 0),
+            'totalTransfer' => [
+                'total' => (int) ($trxForSalesCount['Transfer Uang']->total_amount ?? 0),
+                'count' => (int) ($trxForSalesCount['Transfer Uang']->total_count ?? 0)
+            ],
+            'totalCashWithdrawal' => [
+                'total' => (int) ($trxForSalesCount['Tarik Tunai']->total_amount ?? 0),
+                'count' => (int) ($trxForSalesCount['Tarik Tunai']->total_count ?? 0)
+            ],
+            'totalCashDeposit' => [
+                'total' => (int) ($trxForSalesCount['Deposit']->total_amount ?? 0),
+                'count' => (int) ($trxForSalesCount['Deposit']->total_count ?? 0)
+            ],
+            'totalVoucher' => [
+                'total' => (int) ($trxForSalesCount['Voucher & SP']->total_amount ?? 0),
+                'count' => (int) ($trxForSalesCount['Voucher & SP']->total_count ?? 0)
+            ],
+            'totalAccessories' => [
+                'total' => (int) ($trxForSalesCount['Accessories']->total_amount ?? 0),
+                'count' => (int) ($trxForSalesCount['Accessories']->total_count ?? 0)
+            ],
             'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_fee ?? 0),
             'totalFee' => (int) ($totalFee->total_fee_positive ?? 0),
             'profit' => (int) ($totalFee->total_fee ?? 0),
             'salesCount' => $countTrxByType
-
         ];
 
         return new ChartOfAccountResource($dailyReport, true, "Successfully fetched chart of accounts");
