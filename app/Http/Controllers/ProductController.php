@@ -85,7 +85,7 @@ class ProductController extends Controller
             [
                 'name' => 'required|string|max:255|unique:products,name,' . $product->id,
                 'category' => 'required|exists:product_categories,name',  // Make sure category_id is present
-                'price' => 'required|numeric',
+                'price' => 'required|numeric|min:' . $product->cost,
                 'cost' => 'required|numeric',
             ]
         );
