@@ -19,7 +19,9 @@ return [
 
     'allowed_methods' => ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000'), 'https://team.three-komunika.com'],
+    'allowed_origins' => [
+        'https://team.three-komunika.com',
+    ],
 
     'allowed_origins_patterns' => [],
 
