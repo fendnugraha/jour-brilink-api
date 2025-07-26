@@ -19,7 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000'), 'https://team.threekomunika.com', 'https://team.three-komunika.com'],
+    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:3000'), 'https://team.three-komunika.com'],
 
     'allowed_origins_patterns' => [],
 
