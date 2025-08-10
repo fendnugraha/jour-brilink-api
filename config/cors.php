@@ -21,6 +21,7 @@ return [
 
     'allowed_origins' => [
         'https://team.three-komunika.com',
+        env('FRONTEND_URL', 'http://localhost:3000'),
     ],
 
     'allowed_origins_patterns' => [],
