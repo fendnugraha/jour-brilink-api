@@ -42,7 +42,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     //contacts
     Route::apiResource('contacts', ContactController::class);
-    Route::get('get-all-contacts', [ContactController::class, 'getAllContacts']);
+    Route::get('get-all-contacts/{type}', [ContactController::class, 'getAllContacts']);
 
     Route::apiResource('warehouse', WarehouseController::class);
     Route::get('get-all-warehouses', [WarehouseController::class, 'getAllWarehouses']);
@@ -71,6 +71,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('finance-by-type/{contact}/{financeType}', [FinanceController::class, 'getFinanceByType']);
     Route::get('get-finance-by-contact-id/{contactId}', [FinanceController::class, 'getFinanceByContactId']);
     Route::post('store-payment', [FinanceController::class, 'storePayment']);
+    Route::post('deposit-withdraw', [FinanceController::class, 'depositWithdraw']);
+    Route::post('store-saving', [FinanceController::class, 'storeSaving']);
 
     Route::get('log-activity/{startDate}/{endDate}/{warehouse}', [LogActivityController::class, 'index']);
 });

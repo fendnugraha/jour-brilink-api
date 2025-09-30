@@ -7,6 +7,7 @@ use App\Models\Finance;
 use App\Models\Journal;
 use App\Models\LogActivity;
 use Illuminate\Http\Request;
+use App\Models\ChartOfAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
@@ -87,6 +88,67 @@ class FinanceController extends Controller
                 'description' => $request->description,
                 'debt_code' => $request->debt_code,
                 'cred_code' => $request->cred_code,
+                'amount' => $request->amount,
+                'fee_amount' => 0,
+                'status' => 1,
+                'rcv_pay' => $request->type,
+                'payment_status' => 0,
+                'payment_nth' => 0,
+                'user_id' => Auth::user()->id,
+                'warehouse_id' => 1
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Payable created successfully'
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function storeSaving(Request $request)
+    {
+        $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
+        $invoice_number = Finance::invoice_saving($request->contact_id);
+
+        $request->validate([
+            'amount' => 'required|numeric',
+            'description' => 'required|max:160',
+            'contact_id' => 'required|exists:contacts,id',
+            'debt_code' => 'required|exists:chart_of_accounts,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            Finance::create([
+                'date_issued' => $dateIssued,
+                'due_date' => $dateIssued->copy()->addDays(30),
+                'invoice' => $invoice_number,
+                'description' => "Simpanan Wajib Karyawan. Note: " . $request->description,
+                'bill_amount' => $request->amount,
+                'payment_amount' => 0,
+                'payment_status' => 0,
+                'payment_nth' => 0,
+                'finance_type' => "Saving",
+                'contact_id' => $request->contact_id,
+                'user_id' => Auth::user()->id,
+                'account_code' => ChartOfAccount::SAVING_ACCOUNT
+            ]);
+
+            Journal::create([
+                'date_issued' => $dateIssued,
+                'invoice' => $invoice_number,
+                'description' => $request->description,
+                'debt_code' => $request->debt_code,
+                'cred_code' => ChartOfAccount::SAVING_ACCOUNT,
                 'amount' => $request->amount,
                 'fee_amount' => 0,
                 'status' => 1,
@@ -226,11 +288,24 @@ class FinanceController extends Controller
         return new AccountResource($data, true, "Successfully fetched finances");
     }
 
-    public function getInvoiceValue($invoice)
+    public function getInvoiceValue(?string $invoice = null, ?int $contactId = null)
     {
-        $sisa = Finance::selectRaw('SUM(bill_amount) - SUM(payment_amount) as sisa')->where('invoice', $invoice)->groupBy('invoice')->first()->sisa;
-        return $sisa;
+        $query = Finance::selectRaw('SUM(bill_amount) - SUM(payment_amount) as sisa');
+
+        if ($invoice) {
+            // Hitung per invoice
+            $query->where('invoice', $invoice)->groupBy('invoice');
+        } elseif ($contactId) {
+            // Hitung per contact
+            $query->where('contact_id', $contactId)->groupBy('contact_id');
+        } else {
+            // Kalau tidak ada filter, mungkin return semua?
+            return 0;
+        }
+
+        return $query->value('sisa') ?? 0;
     }
+
 
     public function getFinanceData($invoice)
     {
@@ -240,7 +315,7 @@ class FinanceController extends Controller
 
     public function storePayment(Request $request)
     {
-        $sisa = $this->getInvoiceValue($request->invoice);
+        $sisa = $this->getInvoiceValue(invoice: $request->invoice);
         if ($sisa <= 0) {
             return response()->json([
                 'status' => false,
@@ -249,7 +324,7 @@ class FinanceController extends Controller
         }
 
         $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
-        $finance = $this->getFinanceData($request->invoice);
+        $finance = $this->getFinanceData(invoice: $request->invoice);
         $request->validate([
             'contact_id' => 'required|exists:contacts,id',
             'invoice' => 'required|exists:finances,invoice',
@@ -259,7 +334,7 @@ class FinanceController extends Controller
         ]);
 
         $payment_nth = Finance::selectRaw('MAX(payment_nth) as payment_nth')->where('invoice', $request->invoice)->first()->payment_nth + 1;
-        $payment_status = $this->getInvoiceValue($request->invoice) == 0 ? 1 : 0;
+        $payment_status = $this->getInvoiceValue(invoice: $request->invoice) == 0 ? 1 : 0;
 
         DB::beginTransaction();
         try {
@@ -287,7 +362,84 @@ class FinanceController extends Controller
                 'amount' => $request->amount,
                 'fee_amount' => 0,
                 'status' => 1,
-                'rcv_pay' => $this->getFinanceData($request->invoice)->finance_type,
+                'rcv_pay' => $this->getFinanceData(invoice: $request->invoice)->finance_type,
+                'payment_status' => $payment_status,
+                'payment_nth' => $payment_nth,
+                'user_id' => Auth::user()->id,
+                'warehouse_id' => 1
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Payment created successfully'
+            ], 201);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function depositWithdraw(Request $request)
+    {
+        $sisa = $this->getInvoiceValue(contactId: $request->contact_id);
+        if ($sisa <= 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Jumlah pembayaran melebihi sisa tagihan'
+            ]);
+        }
+
+        $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
+        $finance = $this->getInvoiceValue(contactId: $request->contact_id);
+        $request->validate(
+            [
+                'contact_id' => 'required|exists:contacts,id',
+                'account_id' => 'required|exists:chart_of_accounts,id',
+                'amount' => 'required|numeric|min:0|max:' . $sisa,
+                'notes' => 'required',
+            ],
+            [
+                'amount.max' => 'Jumlah pembayaran melebihi sisa tagihan : ' . number_format($sisa),
+            ]
+        );
+
+        $payment_nth = Finance::selectRaw('MAX(payment_nth) as payment_nth')->where('contact_id', $request->contact_id)->first()->payment_nth + 1;
+        $payment_status = $this->getInvoiceValue(contactId: $request->contact_id) == 0 ? 1 : 0;
+        $invoice_number = Finance::invoice_saving($request->contact_id);
+
+        DB::beginTransaction();
+        try {
+            Finance::create([
+                'date_issued' => $dateIssued,
+                'due_date' => $dateIssued,
+                'invoice' => $invoice_number,
+                'description' => $request->notes,
+                'bill_amount' => 0,
+                'payment_amount' => $request->amount,
+                'payment_status' => $payment_status,
+                'payment_nth' => $payment_nth,
+                'finance_type' => "Saving",
+                'contact_id' => $request->contact_id,
+                'user_id' => Auth::user()->id,
+                'account_code' => $request->account_id,
+            ]);
+
+            Journal::create([
+                'date_issued' => $dateIssued,
+                'invoice' => $invoice_number,
+                'description' => $request->notes,
+                'debt_code' => ChartOfAccount::SAVING_ACCOUNT,
+                'cred_code' => $request->account_id,
+                'amount' => $request->amount,
+                'fee_amount' => 0,
+                'status' => 1,
+                'rcv_pay' => "Saving",
                 'payment_status' => $payment_status,
                 'payment_nth' => $payment_nth,
                 'user_id' => Auth::user()->id,

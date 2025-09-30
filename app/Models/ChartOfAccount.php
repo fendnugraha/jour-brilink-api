@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ChartOfAccount extends Model
 {
+    const SAVING_ACCOUNT = 160;
     protected $guarded = ['id'];
 
     protected $casts = [

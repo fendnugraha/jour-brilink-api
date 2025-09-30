@@ -107,9 +107,11 @@ class ContactController extends Controller
         ]);
     }
 
-    public function getAllContacts()
+    public function getAllContacts($type = "all")
     {
-        $contacts = Contact::orderBy('name', 'asc')->get();
+        $contacts = Contact::orderBy('name', 'asc')->when($type !== "all", function ($query) use ($type) {
+            $query->where('type', $type);
+        })->get();
         return new AccountResource($contacts, true, "Successfully fetched contacts");
     }
 }
