@@ -810,4 +810,18 @@ class JournalController extends Controller
             'data' => $revenue
         ], 200);
     }
+
+    public function updateConfirmStatus($id)
+    {
+        $journal = Journal::findOrFail($id);
+        $journal->is_confirmed = !$journal->is_confirmed;
+        $journal->save();
+
+        $message = $journal->is_confirmed ? 'Journal has been confirmed' : 'Journal has been unconfirmed';
+        return response()->json([
+            'success' => true,
+            'data' => $journal,
+            'message' => $message
+        ], 200);
+    }
 }

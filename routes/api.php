@@ -60,6 +60,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-revenue-report-by-warehouse/{warehouseId}/{month}/{year}', [JournalController::class, 'getRevenueReportByWarehouse']);
     Route::get('mutation-history/{account}/{startDate}/{endDate}', [JournalController::class, 'mutationHistory']);
     Route::get('get-rank-by-profit', [JournalController::class, 'getRankByProfit']);
+    Route::put('update-confirm-status/{id}', [JournalController::class, 'updateConfirmStatus']);
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);
