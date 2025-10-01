@@ -175,6 +175,70 @@ class FinanceController extends Controller
         }
     }
 
+    public function storeSavingMultiple(Request $request)
+    {
+        $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
+
+
+        $request->validate([
+            'amount' => 'required|numeric',
+            'contact_ids' => 'required|array',
+            'contact_ids.*' => 'required|exists:contacts,id',
+            'debt_code' => 'required|exists:chart_of_accounts,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            foreach ($request->contact_ids as $contact_id) {
+                $invoice_number = Finance::invoice_saving($contact_id);
+                Finance::create([
+                    'date_issued' => $dateIssued,
+                    'due_date' => $dateIssued->copy()->addDays(30),
+                    'invoice' => $invoice_number,
+                    'description' => "Simpanan Wajib Karyawan",
+                    'bill_amount' => $request->amount,
+                    'payment_amount' => 0,
+                    'payment_status' => 0,
+                    'payment_nth' => 0,
+                    'finance_type' => "Saving",
+                    'contact_id' => $contact_id,
+                    'user_id' => Auth::user()->id,
+                    'account_code' => ChartOfAccount::SAVING_ACCOUNT
+                ]);
+
+                Journal::create([
+                    'date_issued' => $dateIssued,
+                    'invoice' => $invoice_number,
+                    'description' => "Simpanan Wajib Karyawan",
+                    'debt_code' => $request->debt_code,
+                    'cred_code' => ChartOfAccount::SAVING_ACCOUNT,
+                    'amount' => $request->amount,
+                    'fee_amount' => 0,
+                    'status' => 1,
+                    'rcv_pay' => $request->type,
+                    'payment_status' => 0,
+                    'payment_nth' => 0,
+                    'user_id' => Auth::user()->id,
+                    'warehouse_id' => 1
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Berhasil membuat simpanan wajib karyawan (multiple)'
+            ]);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage()
+            ], 500);
+        }
+    }
+
     /**
      * Display the specified resource.
      */

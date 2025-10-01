@@ -73,6 +73,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('store-payment', [FinanceController::class, 'storePayment']);
     Route::post('deposit-withdraw', [FinanceController::class, 'depositWithdraw']);
     Route::post('store-saving', [FinanceController::class, 'storeSaving']);
+    Route::post('store-saving-multiple', [FinanceController::class, 'storeSavingMultiple']);
 
     Route::get('log-activity/{startDate}/{endDate}/{warehouse}', [LogActivityController::class, 'index']);
 });
