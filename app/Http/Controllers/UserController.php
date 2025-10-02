@@ -116,7 +116,6 @@ class UserController extends Controller
             'name' => 'required|min:3|max:90',
             'email' => 'required|email|unique:users,email,' . $id,
             'warehouse' => 'required|exists:warehouses,id',
-            'role' => 'required|in:Administrator,Kasir'
         ]);
 
         DB::beginTransaction();
@@ -130,7 +129,7 @@ class UserController extends Controller
 
             // Update the user role
             $user->role()->update([
-                'role' => $request->role,
+                'role' => $request->role ?? $user->role->role,
                 'warehouse_id' => $request->warehouse
             ]);
 
