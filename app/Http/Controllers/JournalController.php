@@ -365,7 +365,7 @@ class JournalController extends Controller
         try {
             $journal = Journal::create([
                 'invoice' => Journal::invoice_journal(),  // Menggunakan metode statis untuk invoice
-                'date_issued' => now(),
+                'date_issued' => $request->date_issued ?? now(),
                 'debt_code' => $request->debt_code,
                 'cred_code' => $request->cred_code,
                 'amount' => $request->amount,
@@ -379,7 +379,7 @@ class JournalController extends Controller
             if ($request->admin_fee > 0) {
                 Journal::create([
                     'invoice' => Journal::invoice_journal(),  // Menggunakan metode statis untuk invoice
-                    'date_issued' => now(),
+                    'date_issued' => $request->date_issued ?? now(),
                     'debt_code' => $hqCashAccount,
                     'cred_code' => $request->cred_code,
                     'amount' => $request->admin_fee,
@@ -678,7 +678,7 @@ class JournalController extends Controller
                     'warehouse' => $r->warehouse->name,
                     'warehouseId' => $r->warehouse_id,
                     'warehouse_code' => $r->warehouse->code,
-                    'cash' => $rv->where('debt_code', (int) 2)->sum('amount'),
+                    'cash' => $rv->where('debt_code', (int) 2)->where('warehouse_id', '!=', (int) 1)->sum('amount'),
                     'transfer' => $rv->where('trx_type', 'Transfer Uang')->sum('amount'),
                     'tarikTunai' => $rv->where('trx_type', 'Tarik Tunai')->sum('amount'),
                     'voucher' => $rv->where('trx_type', 'Voucher & SP')->sum('amount'),
