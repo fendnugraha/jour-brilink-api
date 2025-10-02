@@ -672,19 +672,19 @@ class JournalController extends Controller
                     Carbon::parse($startDate)->startOfDay(),
                     Carbon::parse($endDate)->endOfDay()
                 ])
-                    ->where('trx_type', '!=', 'Mutasi Kas')
                     ->where('trx_type', '!=', 'Jurnal Umum')
                     ->where('warehouse_id', $r->warehouse_id)->get();
                 return [
                     'warehouse' => $r->warehouse->name,
                     'warehouseId' => $r->warehouse_id,
                     'warehouse_code' => $r->warehouse->code,
+                    'cash' => $rv->where('debt_code', (int) 2)->sum('amount'),
                     'transfer' => $rv->where('trx_type', 'Transfer Uang')->sum('amount'),
                     'tarikTunai' => $rv->where('trx_type', 'Tarik Tunai')->sum('amount'),
                     'voucher' => $rv->where('trx_type', 'Voucher & SP')->sum('amount'),
                     'accessories' => $rv->where('trx_type', 'Accessories')->sum('amount'),
                     'deposit' => $rv->where('trx_type', 'Deposit')->sum('amount'),
-                    'trx' => $rv->count() - $rv->where('trx_type', 'Pengeluaran')->count(),
+                    'trx' => $rv->count() - $rv->whereIn('trx_type', ['Pengeluaran', 'Mutasi Kas'])->count(),
                     'expense' => -$rv->where('trx_type', 'Pengeluaran')->sum('fee_amount'),
                     'fee' => doubleval($r->sumfee ?? 0)
                 ];
@@ -707,6 +707,7 @@ class JournalController extends Controller
         // Data harian
         $revenue = $journal->selectRaw("
             DATE(date_issued) as date,
+            SUM(CASE WHEN debt_code = 2 THEN amount ELSE 0 END) as cash,
             SUM(CASE WHEN trx_type = 'Transfer Uang' THEN amount ELSE 0 END) as transfer,
             SUM(CASE WHEN trx_type = 'Tarik Tunai' THEN amount ELSE 0 END) as tarikTunai,
             SUM(CASE WHEN trx_type = 'Voucher & SP' THEN amount ELSE 0 END) as voucher,
@@ -723,6 +724,7 @@ class JournalController extends Controller
 
         // Total keseluruhan
         $totals = $journal->selectRaw("
+            SUM(CASE WHEN debt_code = 2 THEN amount ELSE 0 END) as cash,
             SUM(CASE WHEN trx_type = 'Transfer Uang' THEN amount ELSE 0 END) as totalTransfer,
             SUM(CASE WHEN trx_type = 'Tarik Tunai' THEN amount ELSE 0 END) as totalTarikTunai,
             SUM(CASE WHEN trx_type = 'Voucher & SP' THEN amount ELSE 0 END) as totalVoucher,
