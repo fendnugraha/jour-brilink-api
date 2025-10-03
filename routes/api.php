@@ -61,6 +61,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('mutation-history/{account}/{startDate}/{endDate}', [JournalController::class, 'mutationHistory']);
     Route::get('get-rank-by-profit', [JournalController::class, 'getRankByProfit']);
     Route::put('update-confirm-status/{id}', [JournalController::class, 'updateConfirmStatus']);
+    Route::post('update-confirm-status-batch', [JournalController::class, 'updateConfirmStatusBatch']);
+    Route::get('calculate-trx-by-warehouse/{startDate}/{endDate}', [JournalController::class, 'calcPercentegeTrxByWarehouse']);
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);

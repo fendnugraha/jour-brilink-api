@@ -826,4 +826,51 @@ class JournalController extends Controller
             'message' => $message
         ], 200);
     }
+
+    public function updateConfirmStatusBatch(Request $request)
+    {
+        $ids = $request->journal_ids;
+
+        foreach ($ids as $id) {
+            $journal = Journal::findOrFail($id);
+            $journal->is_confirmed = 1;
+            $journal->save();
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $journal,
+            'message' => 'Journal has been updated'
+        ], 200);
+    }
+
+    public function calcPercentegeTrxByWarehouse($startDate, $endDate)
+    {
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+
+        $journal = DB::table('journals as j')
+            ->leftJoin('chart_of_accounts as d', 'j.debt_code', '=', 'd.id')
+            ->leftJoin('chart_of_accounts as c', 'j.cred_code', '=', 'c.id')
+            ->join('warehouses as w', 'j.warehouse_id', '=', 'w.id')
+            ->select(
+                'j.warehouse_id',
+                'w.name as warehouse_name',
+                DB::raw('COUNT(DISTINCT j.id) as total'),
+                DB::raw('SUM(CASE WHEN j.is_confirmed = 1 THEN 1 ELSE 0 END) as confirmed_count')
+            )
+            ->whereBetween('j.date_issued', [$startDate, $endDate])
+            ->where('j.warehouse_id', '!=', 1)
+            ->where(function ($query) {
+                $query->where('d.account_id', 2)
+                    ->orWhere('c.account_id', 2);
+            })
+            ->groupBy('j.warehouse_id', 'w.name')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $journal
+        ], 200);
+    }
 }
