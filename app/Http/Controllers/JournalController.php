@@ -856,6 +856,7 @@ class JournalController extends Controller
             ->select(
                 'j.warehouse_id',
                 'w.name as warehouse_name',
+                'w.code as warehouse_code',
                 DB::raw('COUNT(DISTINCT j.id) as total'),
                 DB::raw('SUM(CASE WHEN j.is_confirmed = 1 THEN 1 ELSE 0 END) as confirmed_count')
             )

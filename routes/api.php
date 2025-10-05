@@ -1,19 +1,20 @@
 <?php
 
+use App\Models\Finance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\CorrectionController;
+use App\Http\Controllers\LogActivityController;
 use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\ChartOfAccountController;
-use App\Http\Controllers\FinanceController;
-use App\Http\Controllers\LogActivityController;
 use App\Http\Controllers\ProductCategoryController;
-use App\Models\Finance;
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/user', function (Request $request) {
@@ -79,4 +80,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('store-saving-multiple', [FinanceController::class, 'storeSavingMultiple']);
 
     Route::get('log-activity/{startDate}/{endDate}/{warehouse}', [LogActivityController::class, 'index']);
+
+    //Correction
+    Route::apiResource('correction', CorrectionController::class);
 });
