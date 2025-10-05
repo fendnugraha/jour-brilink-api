@@ -18,6 +18,10 @@ return new class extends Migration
                 ->nullable()
                 ->constrained('journals')
                 ->onDelete('restrict');
+            $table->foreignId('journal_reference_id')
+                ->nullable()
+                ->constrained('journals')
+                ->onDelete('restrict');
             $table->foreignId('warehouse_id')
                 ->constrained('warehouses')
                 ->onDelete('restrict');

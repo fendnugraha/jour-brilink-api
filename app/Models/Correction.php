@@ -10,7 +10,12 @@ class Correction extends Model
 
     public function journal()
     {
-        return $this->belongsTo(Journal::class);
+        return $this->belongsTo(Journal::class, 'journal_id');
+    }
+
+    public function referenceJournal()
+    {
+        return $this->belongsTo(Journal::class, 'journal_reference_id');
     }
 
     public function warehouse()

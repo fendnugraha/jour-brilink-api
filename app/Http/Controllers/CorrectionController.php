@@ -20,7 +20,7 @@ class CorrectionController extends Controller
         $startDate = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $request->end_date ? Carbon::parse($request->end_date)->endOfDay() : Carbon::now()->endOfDay();
 
-        $corrections = Correction::with(['journal.debt:id,acc_name', 'journal.cred:id,acc_name', 'warehouse:id,name', 'user:id,name'])
+        $corrections = Correction::with(['referenceJournal.debt:id,acc_name', 'referenceJournal.cred:id,acc_name', 'warehouse:id,name', 'user:id,name'])
             ->whereBetween('created_at', [$startDate, $endDate])
             ->where('warehouse_id', $request->warehouse_id)
             ->orderBy('created_at', 'desc')
@@ -44,7 +44,7 @@ class CorrectionController extends Controller
     {
         $request->validate([
             'date_issued' => 'required|date',
-            'journal_id' => 'nullable|exists:journals,id',
+            'journal_reference_id' => 'nullable|exists:journals,id',
             'amount' => 'required|numeric',
             'description' => 'required|max:160',
             'warehouse_id' => 'required|exists:warehouses,id',
@@ -53,21 +53,10 @@ class CorrectionController extends Controller
 
         try {
             $data = DB::transaction(function () use ($request) {
-                // ✅ Buat record koreksi terlebih dahulu
-                $correction = Correction::create([
-                    'date_issued' => $request->date_issued,
-                    'journal_id' => $request->journal_id,
-                    'warehouse_id' => $request->warehouse_id,
-                    'user_id' => auth()->id(),
-                    'amount' => $request->amount,
-                    'description' => $request->description,
-                    'image_url' => $request->image_url,
-                ]);
 
-                // ✅ Buat journal baru untuk mencatat koreksi
                 $invoice = Journal::invoice_journal();
 
-                Journal::create([
+                $journal = Journal::create([
                     'invoice' => $invoice,
                     'date_issued' => now(),
                     'debt_code' => 9,
@@ -80,9 +69,22 @@ class CorrectionController extends Controller
                     'warehouse_id' => $request->warehouse_id,
                 ]);
 
-                $journal = Journal::find($correction->journal_id);
-                $journal->update([
-                    'is_confirmed' => true,
+                if ($request->journal_reference_id) {
+                    $refJournal = Journal::where('id', $request->journal_reference_id)->first();
+                    $refJournal->update([
+                        'is_confirmed' => true
+                    ]);
+                }
+
+                $correction = Correction::create([
+                    'date_issued' => $refJournal->date_issued ?? $request->date_issued,
+                    'journal_id' => $journal->id,
+                    'journal_reference_id' => $request->journal_reference_id,
+                    'warehouse_id' => $request->warehouse_id,
+                    'user_id' => auth()->id(),
+                    'amount' => $request->amount,
+                    'description' => $request->description,
+                    'image_url' => $request->image_url,
                 ]);
 
                 return $correction;
@@ -133,6 +135,11 @@ class CorrectionController extends Controller
      */
     public function destroy(Correction $correction)
     {
-        //
+        $correction->delete();
+        $correction->journal->delete();
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Berhasil menghapus data koreksi',
+        ]);
     }
 }
