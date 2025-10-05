@@ -135,11 +135,32 @@ class CorrectionController extends Controller
      */
     public function destroy(Correction $correction)
     {
-        $correction->delete();
-        $correction->journal->delete();
-        return response()->json([
-            'status' => 'success',
-            'message' => 'Berhasil menghapus data koreksi',
-        ]);
+        try {
+            DB::transaction(function () use ($correction) {
+                $correction->delete();
+
+                // Hapus journal utama koreksi
+                $correction->journal?->delete();
+
+                // Update jurnal referensi jadi belum dikonfirmasi (kalau ada)
+                if ($correction->referenceJournal) {
+                    $correction->referenceJournal->update(['is_confirmed' => false]);
+                }
+
+                // Hapus data koreksi
+            });
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Berhasil menghapus data koreksi',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Correction Destroy Error: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal menghapus data koreksi. ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }
