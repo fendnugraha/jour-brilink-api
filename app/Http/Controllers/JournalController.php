@@ -884,7 +884,7 @@ class JournalController extends Controller
                 $query->where('d.account_id', 2)
                     ->orWhere('c.account_id', 2);
             })
-            ->groupBy('j.warehouse_id', 'w.name')
+            ->groupBy('j.warehouse_id', 'w.name', 'w.code')
             ->get();
 
         return response()->json([
