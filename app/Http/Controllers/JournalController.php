@@ -149,6 +149,7 @@ class JournalController extends Controller
         //         'message' => 'Journal cannot be deleted because it has transactions'
         //     ]);
         // }
+        Log::info(auth()->user()->role->role);
         if (auth()->user()->role->role != 'Super Admin') {
             if ($journal->date_issued < Carbon::now()->startOfDay()) {
                 return response()->json([
