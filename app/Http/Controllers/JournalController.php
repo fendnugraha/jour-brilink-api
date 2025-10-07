@@ -149,12 +149,15 @@ class JournalController extends Controller
         //         'message' => 'Journal cannot be deleted because it has transactions'
         //     ]);
         // }
-        if ($journal->date_issued < Carbon::now()->startOfDay() && auth()->user()->role->role != 'Super Admin') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
-            ], 400);
+        if (auth()->user()->role->role != 'Super Admin') {
+            if ($journal->date_issued < Carbon::now()->startOfDay()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
+                ], 400);
+            }
         }
+
 
         $log = new LogActivity();
         DB::beginTransaction();
