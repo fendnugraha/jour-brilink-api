@@ -86,11 +86,13 @@ class JournalController extends Controller
         $isAmountChanged = $journal->amount != $request->amount;
         $isFeeAmountChanged = $journal->fee_amount != $request->fee_amount;
 
-        if ($journal->date_issued < Carbon::now()->startOfDay() && auth()->user()->id != $journal->user_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal memperbarui journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
-            ], 400);
+        if (auth()->user()->role->role !== 'Super Admin') {
+            if (Carbon::parse($journal->date_issued)->lt(Carbon::now()->startOfDay())) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
+                ], 400);
+            }
         }
 
         DB::beginTransaction();
@@ -149,14 +151,11 @@ class JournalController extends Controller
         //         'message' => 'Journal cannot be deleted because it has transactions'
         //     ]);
         // }
-        Log::info(auth()->user()->role->role);
-        if (auth()->user()->role->role != 'Super Admin') {
-            if ($journal->date_issued < Carbon::now()->startOfDay()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
-                ], 400);
-            }
+        if (Carbon::parse($journal->date_issued)->lt(Carbon::now()->startOfDay())) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
+            ], 400);
         }
 
 
