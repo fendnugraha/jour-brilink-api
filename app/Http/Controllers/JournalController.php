@@ -901,7 +901,14 @@ class JournalController extends Controller
 
         $journal = Journal::with(['debt.warehouse' => function ($query) {
             $query->select('id', 'name');
-        }, 'cred'])->whereBetween('date_issued', [$startDate, $endDate])->where('trx_type', 'Mutasi Kas')->orderBy('date_issued', 'desc')->get();
+        }, 'cred'])
+            ->whereBetween('date_issued', [$startDate, $endDate])
+            ->where('trx_type', 'Mutasi Kas')
+            ->whereHas('debt', function ($query) {
+                $query->where('account_id', 1);
+            })
+            ->orderBy('date_issued', 'desc')
+            ->get();
         return response()->json([
             'success' => true,
             'data' => $journal
