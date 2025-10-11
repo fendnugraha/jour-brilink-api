@@ -918,4 +918,16 @@ class JournalController extends Controller
             'data' => $journal
         ], 200);
     }
+
+    public function updateDeliveryStatus($id, $status = 1)
+    {
+        $journal = Journal::findOrFail($id);
+        $journal->status = $status;
+        $journal->save();
+        return response()->json([
+            'success' => true,
+            'data' => $journal,
+            'message' => 'Delivery status has been updated'
+        ], 200);
+    }
 }
