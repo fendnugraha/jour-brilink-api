@@ -64,6 +64,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::put('update-confirm-status/{id}', [JournalController::class, 'updateConfirmStatus']);
     Route::post('update-confirm-status-batch', [JournalController::class, 'updateConfirmStatusBatch']);
     Route::get('calculate-trx-by-warehouse/{startDate}/{endDate}', [JournalController::class, 'calcPercentegeTrxByWarehouse']);
+    Route::get('mutation-journal/{startDate}/{endDate}', [JournalController::class, 'mutationJournal']);
+    Route::get('get-journal-by-invoice-number/{invoice_number}', [JournalController::class, 'getJournalByInvoiceNumber']);
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);

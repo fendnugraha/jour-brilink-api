@@ -387,6 +387,7 @@ class JournalController extends Controller
                 'cred_code' => $request->cred_code,
                 'amount' => $request->amount,
                 'is_confirmed' => $request->is_confirmed ?? 0,
+                'status' => $request->confirmation ?? 1,
                 'fee_amount' => $request->fee_amount,
                 'trx_type' => $request->trx_type,
                 'description' => $description,
@@ -887,6 +888,31 @@ class JournalController extends Controller
             ->groupBy('j.warehouse_id', 'w.name', 'w.code')
             ->get();
 
+        return response()->json([
+            'success' => true,
+            'data' => $journal
+        ], 200);
+    }
+
+    public function mutationJournal($startDate, $endDate)
+    {
+        $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
+        $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
+
+        $journal = Journal::with(['debt.warehouse' => function ($query) {
+            $query->select('id', 'name');
+        }, 'cred'])->whereBetween('date_issued', [$startDate, $endDate])->where('trx_type', 'Mutasi Kas')->orderBy('date_issued', 'desc')->get();
+        return response()->json([
+            'success' => true,
+            'data' => $journal
+        ], 200);
+    }
+
+    public function getJournalByInvoiceNumber($invoice_number)
+    {
+        $journal = Journal::with(['debt.warehouse' => function ($query) {
+            $query->select('id', 'name');
+        }, 'cred'])->where('invoice', $invoice_number)->first();
         return response()->json([
             'success' => true,
             'data' => $journal
