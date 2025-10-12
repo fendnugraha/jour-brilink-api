@@ -378,6 +378,10 @@ class JournalController extends Controller
 
         $description = $request->description ?? 'Mutasi Kas';
         $hqCashAccount = Warehouse::find(1)->chart_of_account_id;
+
+        $cred = ChartOfAccount::find($request->cred_code);
+        $confirmation = $cred->account_id == 1 && $cred->warehouse_id == 1 ? $request->confirmation : 1;
+
         DB::beginTransaction();
         try {
             $journal = Journal::create([
@@ -387,7 +391,7 @@ class JournalController extends Controller
                 'cred_code' => $request->cred_code,
                 'amount' => $request->amount,
                 'is_confirmed' => $request->is_confirmed ?? 0,
-                'status' => $request->confirmation ?? 1,
+                'status' => $confirmation,
                 'fee_amount' => $request->fee_amount,
                 'trx_type' => $request->trx_type,
                 'description' => $description,
