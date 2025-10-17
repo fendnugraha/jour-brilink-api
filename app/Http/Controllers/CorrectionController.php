@@ -17,8 +17,8 @@ class CorrectionController extends Controller
      */
     public function index(Request $request)
     {
-        $startDate = $request->start_date ? Carbon::parse($request->start_date)->startOfDay() : Carbon::now()->startOfDay();
-        $endDate = $request->end_date ? Carbon::parse($request->end_date)->endOfDay() : Carbon::now()->endOfDay();
+        $startDate = $request->start_date ? Carbon::parse($request->start_date)->startOfMonth() : Carbon::now()->startOfMonth();
+        $endDate = $request->end_date ? Carbon::parse($request->end_date)->endOfMonth() : Carbon::now()->endOfMonth();
 
         $corrections = Correction::with(['referenceJournal.debt:id,acc_name', 'referenceJournal.cred:id,acc_name', 'warehouse:id,name', 'user:id,name'])
             ->whereBetween('created_at', [$startDate, $endDate])
