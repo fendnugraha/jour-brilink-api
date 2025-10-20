@@ -16,6 +16,11 @@ class UserController extends Controller
     public function index(Request $request)
     {
         $users = User::with('role.warehouse')
+            ->when($request->role, function ($query, $role) {
+                $query->whereHas('role', function ($q) use ($role) {
+                    $q->where('role', $role);
+                });
+            })
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', '%' . $search . '%')
                     ->orWhere('email', 'like', '%' . $search . '%');
