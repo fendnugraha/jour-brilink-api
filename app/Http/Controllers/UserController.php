@@ -230,4 +230,33 @@ class UserController extends Controller
             ], 500);
         }
     }
+
+    public function updateUserLocation(Request $request)
+    {
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric',
+        ]);
+
+        $user = auth()->user();
+
+        try {
+            $user->role()->update([
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User location updated successfully',
+            ], 200);
+        } catch (\Exception $e) {
+            // Flash an error message
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while updating the user location'
+            ], 500);
+        }
+    }
 }

@@ -24,6 +24,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('users', UserController::class);
     Route::get('get-all-users', [UserController::class, 'getAllUsers']);
     Route::put('users/{id}/update-password', [UserController::class, 'updatePassword']);
+    Route::put('update-user-location', [UserController::class, 'updateUserLocation']);
 
     Route::apiResource('accounts', ChartOfAccountController::class);
     Route::get('get-all-accounts', [ChartOfAccountController::class, 'getAllAccounts']);

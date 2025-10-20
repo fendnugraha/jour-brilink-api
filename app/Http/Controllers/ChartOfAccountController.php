@@ -68,6 +68,7 @@ class ChartOfAccountController extends Controller
             'acc_code' => $chartOfAccount->acc_code($request->category_id),
             'acc_name' => $request->name,
             'account_id' => $request->category_id,
+            'account_group' => $request->account_group,
             'st_balance' => $request->st_balance ?? 0,
         ]);
 
@@ -115,6 +116,7 @@ class ChartOfAccountController extends Controller
         try {
             $chartOfAccount->update([
                 'acc_name' => $request->acc_name,
+                'account_group' => $request->account_group,
                 'st_balance' => $request->st_balance ?? 0,
             ]);
 
