@@ -430,6 +430,59 @@ class JournalController extends Controller
         }
     }
 
+    public function createMutationMultiple(Request $request)
+    {
+        $request->validate([
+            'cred_code' => 'required|exists:chart_of_accounts,id',
+            'amount' => 'required|numeric',
+            'account_ids' => 'required|array|min:1',
+            'account_ids.*' => 'exists:chart_of_accounts,id',
+        ], [
+            'admin_fee.numeric' => 'Biaya admin harus berupa angka.',
+            'cred_code.required' => 'Akun kredit harus diisi.',
+            'account_ids.required' => 'Akun debet harus diisi.',
+            'account_ids.*.exists' => 'Akun debet tidak valid.',
+        ]);
+
+        $cred = ChartOfAccount::find($request->cred_code);
+        $confirmation = $cred->account_id == 1 && $cred->warehouse_id == 1 ? $request->confirmation : 1;
+        DB::beginTransaction();
+        try {
+            foreach ($request->account_ids as $account_id) {
+
+                $journal = Journal::create([
+                    'invoice' => Journal::invoice_journal(),  // Menggunakan metode statis untuk invoice
+                    'date_issued' => $request->date_issued ?? now(),
+                    'debt_code' => $account_id,
+                    'cred_code' => $request->cred_code,
+                    'amount' => $request->amount,
+                    'is_confirmed' => 1,
+                    'status' => $confirmation,
+                    'fee_amount' => 0,
+                    'trx_type' => 'Mutasi Kas',
+                    'description' => $request->description ?? 'Penambahan Kas',
+                    'user_id' => auth()->user()->id,
+                    'warehouse_id' => 1
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Mutasi Kas (Multiple) berhasil',
+                'journal' => $journal->load(['debt', 'cred'])
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create journal'
+            ], 500);
+        }
+    }
+
     public function getJournalByWarehouse($warehouse, $startDate, $endDate)
     {
         $chartOfAccounts = ChartOfAccount::where('warehouse_id', $warehouse)->pluck('id')->toArray();
