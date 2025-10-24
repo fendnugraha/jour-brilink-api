@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use App\Models\Journal;
-use App\Models\Warehouse;
 use Illuminate\Http\Request;
 use App\Models\ChartOfAccount;
 use Illuminate\Support\Facades\Log;
@@ -186,24 +185,6 @@ class ChartOfAccountController extends Controller
             'data' => $chartOfAccounts
         ]);
     }
-
-    /*************  ✨ Codeium Command ⭐  *************/
-    /**
-     * Delete multiple Chart of Account records.
-     *
-     * This function deletes the specified Chart of Account records based on the provided IDs.
-     * Prior to deletion, it checks if any of the records are locked. If locked records are found,
-     * it returns a response indicating that some accounts are locked and cannot be deleted.
-     * Otherwise, it proceeds to delete the records and returns a success response.
-     *
-     * @param Request $request The HTTP request containing the IDs of the Chart of Account records to be deleted.
-     * 
-     * @return \Illuminate\Http\JsonResponse A JSON response indicating the result of the deletion operation.
-     * If some accounts are locked, it returns a 403 status with the IDs of the locked accounts.
-     * If deletion is successful, it returns a 200 status with the count of deleted records.
-     */
-
-    /******  f3f3cbc0-44ef-4107-98ae-33c5ad357b83  *******/
     public function deleteAll(Request $request)
     {
         // Retrieve the records that are about to be deleted
@@ -429,7 +410,7 @@ class ChartOfAccountController extends Controller
 
         $countTrxByType = Journal::whereBetween('date_issued', [$startDate, $endDate])
             ->when($warehouse !== 'all', fn($q) => $q->where('warehouse_id', $warehouse))
-            ->whereIn('trx_type', ['Transfer Uang', 'Tarik Tunai', 'Deposit', 'Voucher & SP', 'Accessories'])
+            ->whereIn('trx_type', ['Transfer Uang', 'Tarik Tunai', 'Deposit', 'Voucher & SP', 'Accessories', 'Bank Fee'])
             ->count();
 
 
@@ -470,6 +451,7 @@ class ChartOfAccountController extends Controller
                 'count' => (int) ($trxForSalesCount['Accessories']->total_count ?? 0)
             ],
             'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_fee ?? 0),
+            'totalBankFee' => (int) ($trxForSalesCount['Bank Fee']->total_amount ?? 0),
             'totalFee' => (int) ($totalFee->total_fee_positive ?? 0),
             'totalCorrection' => (int) ($trxForSalesCount['Correction']->total_fee ?? 0),
             'profit' => (int) ($totalFee->total_fee ?? 0),

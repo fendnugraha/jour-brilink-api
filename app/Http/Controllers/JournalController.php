@@ -760,6 +760,7 @@ class JournalController extends Controller
                     'voucher' => $rv->where('trx_type', 'Voucher & SP')->sum('amount'),
                     'accessories' => $rv->where('trx_type', 'Accessories')->sum('amount'),
                     'deposit' => $rv->where('trx_type', 'Deposit')->sum('amount'),
+                    'bank_fee' => $rv->where('trx_type', 'Bank Fee')->sum('fee_amount'),
                     'trx' => $rv->count() - $rv->whereIn('trx_type', ['Pengeluaran', 'Mutasi Kas'])->count(),
                     'expense' => -$rv->where('trx_type', 'Pengeluaran')->sum('fee_amount'),
                     'fee' => doubleval($r->sumfee ?? 0)
