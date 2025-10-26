@@ -638,8 +638,22 @@ class JournalController extends Controller
         // Ambil warehouse
         $warehouses = Warehouse::where('status', 1)->orderBy('name')->get();
 
+        $totalProfitMonthly = Journal::selectRaw('
+        SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee,
+        warehouse_id
+                ')
+            ->whereBetween('date_issued', [
+                Carbon::parse($endDate)->startOfMonth(),
+                Carbon::parse($endDate)->endOfMonth()
+            ])
+            ->where('warehouse_id', '!=', 1)
+            ->groupBy('warehouse_id')
+            ->get()
+            ->keyBy('warehouse_id'); // 👈 ini penting
+
+
         $data = [
-            'warehouse' => $warehouses->map(function ($w) use ($chartOfAccounts) {
+            'warehouse' => $warehouses->map(function ($w) use ($chartOfAccounts, $totalProfitMonthly, $endDate) {
                 return [
                     'id' => $w->id,
                     'name' => $w->name,
@@ -650,6 +664,7 @@ class JournalController extends Controller
                     'bank' => $chartOfAccounts->filter(function ($coa) use ($w) {
                         return ($coa->account && $coa->account->id === 2 && $coa->warehouse_id === $w->id);
                     })->sum('balance'),
+                    'average_profit' => $w->id === 1 ? 0 : $totalProfitMonthly[$w->id]->total_fee / $this->countDaysInMonth($endDate)
                 ];
             }),
             'totalCash' => $sumtotalCash->sum('balance'),
@@ -900,7 +915,6 @@ class JournalController extends Controller
             ->where('warehouse_id', '!=', 1)
             ->groupBy('warehouse_id')
             ->get();
-
 
         return response()->json([
             'success' => true,
