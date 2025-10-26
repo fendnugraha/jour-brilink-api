@@ -379,11 +379,24 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
+    function countDaysInMonth($date)
+    {
+        $parsed = Carbon::parse($date);
+        $selectedMonth = Carbon::create($parsed->year, $parsed->month, 1);
+        $now = Carbon::now();
+
+        return $selectedMonth->isSameMonth($now)
+            ? $now->day
+            : $selectedMonth->daysInMonth;
+    }
+
     public function dailyDashboard(Request $request)
     {
         $warehouse = $request->query('warehouse', null);
         $startDate = $request->query('startDate') ? Carbon::parse($request->query('startDate'))->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $request->query('endDate') ? Carbon::parse($request->query('endDate'))->endOfDay() : Carbon::now()->endOfDay();
+
+        $diffDays = Carbon::parse($endDate)->startOfDay()->diffInDays(Carbon::parse($startDate)->startOfDay());
 
         $warehouseBalance = Journal::balancesByWarehouse($warehouse, $endDate);
 
@@ -455,6 +468,13 @@ class ChartOfAccountController extends Controller
             'totalFee' => (int) ($totalFee->total_fee_positive ?? 0),
             'totalCorrection' => (int) ($trxForSalesCount['Correction']->total_fee ?? 0),
             'profit' => (int) ($totalFee->total_fee ?? 0),
+            'countDays' => $this->countDaysInMonth($startDate),
+            'diffDays' => $diffDays,
+            'averageProfit' => (int) (
+                $diffDays == 0
+                ? ($totalFee->total_fee_positive ?? 0)
+                : (($totalFee->total_fee_positive ?? 0) / $this->countDaysInMonth($startDate))
+            ),
             'salesCount' => $countTrxByType
         ];
 
