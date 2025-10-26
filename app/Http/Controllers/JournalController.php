@@ -871,6 +871,17 @@ class JournalController extends Controller
         ], 200);
     }
 
+    function countDaysInMonth($date)
+    {
+        $parsed = Carbon::parse($date);
+        $selectedMonth = Carbon::create($parsed->year, $parsed->month, 1);
+        $now = Carbon::now();
+
+        return $selectedMonth->isSameMonth($now)
+            ? $now->day
+            : $selectedMonth->daysInMonth;
+    }
+
     public function getRankByProfit()
     {
         $journal = new Journal();
@@ -884,9 +895,24 @@ class JournalController extends Controller
             ->orderBy('total', 'desc')
             ->get();
 
+        $totalProfitMonthly = Journal::selectRaw('SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee_positive, warehouse_id')
+            ->whereBetween('date_issued', [Carbon::parse($startDate)->startOfMonth(), Carbon::parse($endDate)->endOfMonth()])
+            ->where('warehouse_id', '!=', 1)
+            ->groupBy('warehouse_id')
+            ->get();
+
+
         return response()->json([
             'success' => true,
-            'data' => $revenue
+            'data' => [
+                'revenue' => $revenue,
+                'totalProfitMonthly' => $totalProfitMonthly->map(function ($r) {
+                    return [
+                        'average_profit' => $r->total_fee_positive / $this->countDaysInMonth(Carbon::now()->startOfDay()),
+                        'warehouse_id' => $r->warehouse_id
+                    ];
+                })
+            ]
         ], 200);
     }
 
