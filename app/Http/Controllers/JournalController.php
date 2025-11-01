@@ -562,7 +562,7 @@ class JournalController extends Controller
         // 3. Pre-fetch total debit aktivitas untuk HANYA tanggal $endDate
         $dailyDebits = Journal::selectRaw('debt_code as account_id, SUM(amount) as total_amount')
             ->whereIn('debt_code', $allAccountIds)
-            ->whereDate('date_issued', $endDate->toDateString())
+            ->whereBetween('date_issued', [$previousDate, $endDate])
             // HANYA AKTIVITAS HARI INI
             ->groupBy('debt_code')
             ->pluck('total_amount', 'account_id')
@@ -573,7 +573,7 @@ class JournalController extends Controller
         // 4. Pre-fetch total credit aktivitas untuk HANYA tanggal $endDate
         $dailyCredits = Journal::selectRaw('cred_code as account_id, SUM(amount) as total_amount')
             ->whereIn('cred_code', $allAccountIds)
-            ->whereDate('date_issued', $endDate->toDateString())
+            ->whereBetween('date_issued', [$previousDate, $endDate])
             // HANYA AKTIVITAS HARI INI
             ->groupBy('cred_code')
             ->pluck('total_amount', 'account_id')
