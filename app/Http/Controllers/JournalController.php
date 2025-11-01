@@ -562,7 +562,8 @@ class JournalController extends Controller
         // 3. Pre-fetch total debit aktivitas untuk HANYA tanggal $endDate
         $dailyDebits = Journal::selectRaw('debt_code as account_id, SUM(amount) as total_amount')
             ->whereIn('debt_code', $allAccountIds)
-            ->whereBetween('date_issued', [$previousDate, $endDate]) // HANYA AKTIVITAS HARI INI
+            ->whereDate('date_issued', $endDate->toDateString())
+            // HANYA AKTIVITAS HARI INI
             ->groupBy('debt_code')
             ->pluck('total_amount', 'account_id')
             ->toArray();
@@ -572,7 +573,8 @@ class JournalController extends Controller
         // 4. Pre-fetch total credit aktivitas untuk HANYA tanggal $endDate
         $dailyCredits = Journal::selectRaw('cred_code as account_id, SUM(amount) as total_amount')
             ->whereIn('cred_code', $allAccountIds)
-            ->whereBetween('date_issued', [$previousDate, $endDate]) // HANYA AKTIVITAS HARI INI
+            ->whereDate('date_issued', $endDate->toDateString())
+            // HANYA AKTIVITAS HARI INI
             ->groupBy('cred_code')
             ->pluck('total_amount', 'account_id')
             ->toArray();
@@ -664,7 +666,14 @@ class JournalController extends Controller
                     'bank' => $chartOfAccounts->filter(function ($coa) use ($w) {
                         return ($coa->account && $coa->account->id === 2 && $coa->warehouse_id === $w->id);
                     })->sum('balance'),
-                    'average_profit' => $w->id === 1 ? 0 : $totalProfitMonthly[$w->id]->total_fee / $this->countDaysInMonth($endDate)
+                    'average_profit' => $w->id === 1
+                        ? 0
+                        : (
+                            isset($totalProfitMonthly[$w->id])
+                            ? $totalProfitMonthly[$w->id]->total_fee / $this->countDaysInMonth($endDate)
+                            : 0
+                        ),
+
                 ];
             }),
             'totalCash' => $sumtotalCash->sum('balance'),
