@@ -151,7 +151,7 @@ class JournalController extends Controller
         //         'message' => 'Journal cannot be deleted because it has transactions'
         //     ]);
         // }
-        if (Carbon::parse($journal->date_issued)->lt(Carbon::now()->startOfDay())) {
+        if (Carbon::parse($journal->date_issued)->lt(Carbon::now()->startOfDay()) && auth()->user()->role->role !== 'Super Admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
@@ -173,6 +173,18 @@ class JournalController extends Controller
                 'activity' => 'Deleted Journal',
                 'description' => 'Deleted Journal with ID: ' . $journal->id . ' (' . $journal->description . ' from ' . $journal->cred->acc_name . ' to ' . $journal->debt->acc_name . ' with amount: ' . number_format($journal->amount, 0, ',', '.') . ' and fee amount: ' . number_format($journal->fee_amount, 0, ',', '.') . ')',
             ]);
+
+            if ($journal->date_issued) {
+                try {
+                    $dateIssued = Carbon::parse($journal->date_issued);
+
+                    if ($dateIssued->lt(Carbon::now()->startOfDay())) {
+                        $this->_updateBalancesDirectly($dateIssued);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Invalid date_issued format: {$journal->date_issued}");
+                }
+            }
 
             DB::commit();
             return response()->json([
