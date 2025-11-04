@@ -415,7 +415,7 @@ class JournalController extends Controller
                 'cred_code' => $request->cred_code,
                 'amount' => $request->amount,
                 'is_confirmed' => $request->is_confirmed ?? 0,
-                'status' => $confirmation,
+                'status' => $confirmation ?? 0,
                 'fee_amount' => $request->fee_amount,
                 'trx_type' => $request->trx_type,
                 'description' => $description,
