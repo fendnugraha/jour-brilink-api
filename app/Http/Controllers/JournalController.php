@@ -397,7 +397,7 @@ class JournalController extends Controller
     public function createMutation(Request $request)
     {
         $request->validate([
-            'date_issued' => 'required|date',
+            'date_issued' => 'date',
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id',
             'amount' => 'required|numeric',
