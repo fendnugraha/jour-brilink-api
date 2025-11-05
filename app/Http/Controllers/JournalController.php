@@ -90,7 +90,7 @@ class JournalController extends Controller
             if (Carbon::parse($journal->date_issued)->lt(Carbon::now()->startOfDay())) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
+                    'message' => 'Gagal mengubah journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
                 ], 400);
             }
         }
@@ -218,6 +218,14 @@ class JournalController extends Controller
             'custName.regex' => 'Customer name tidak valid.',
         ]);
         $description = $request->description ? $request->description . ' - ' . strtoupper($request->custName) : $request->trx_type . ' - ' . strtoupper($request->custName);
+
+        if (Carbon::parse($request->date_issued)->lt(Carbon::now()->startOfDay()) && auth()->user()->role->role !== 'Super Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat membuat jurnal sebelum tanggal sekarang'
+            ], 500);
+        }
+
 
         DB::beginTransaction();
         try {
@@ -389,6 +397,7 @@ class JournalController extends Controller
     public function createMutation(Request $request)
     {
         $request->validate([
+            'date_issued' => 'required|date',
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id',
             'amount' => 'required|numeric',
@@ -405,6 +414,14 @@ class JournalController extends Controller
 
         $cred = ChartOfAccount::find($request->cred_code);
         $confirmation = $cred->account_id == 1 && $cred->warehouse_id == 1 ? $request->confirmation : 1;
+
+        if (Carbon::parse($request->date_issued)->lt(Carbon::now()->startOfDay()) && auth()->user()->role->role !== 'Super Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak dapat membuat jurnal sebelum tanggal sekarang'
+            ], 500);
+        }
+
 
         DB::beginTransaction();
         try {
@@ -531,7 +548,7 @@ class JournalController extends Controller
         }
     }
 
-    public function getJournalByWarehouse($warehouse, $startDate, $endDate)
+    public function getJournalByWarehouse($warehouse, $startDate, $endDate, Request $request)
     {
         $chartOfAccounts = ChartOfAccount::where('warehouse_id', $warehouse)->pluck('id')->toArray();
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
@@ -555,7 +572,7 @@ class JournalController extends Controller
                     ->where('warehouse_id', $warehouse)
                     ->whereBetween('date_issued', [$startDate, $endDate]); // Apply whereBetween here as well
             })
-            ->orderBy('created_at', 'desc')
+            ->orderBy('date_issued', $request->sort ?? 'desc')
             ->get();
 
 
