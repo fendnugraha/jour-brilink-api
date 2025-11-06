@@ -124,6 +124,18 @@ class JournalController extends Controller
                 ]);
             }
 
+            if ($journal->date_issued) {
+                try {
+                    $dateIssued = Carbon::parse($journal->date_issued);
+
+                    if ($dateIssued->lt(Carbon::now()->startOfDay())) {
+                        $this->_updateBalancesDirectly($dateIssued);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning("Invalid date_issued format: {$journal->date_issued}");
+                }
+            }
+
             DB::commit();
         } catch (\Exception $e) {
             DB::rollBack();
