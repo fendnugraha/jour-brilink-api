@@ -434,6 +434,12 @@ class JournalController extends Controller
             ], 500);
         }
 
+        if ($request->debt_code == $request->cred_code) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun debet dan kredit tidak boleh sama'
+            ], 500);
+        }
 
         DB::beginTransaction();
         try {
