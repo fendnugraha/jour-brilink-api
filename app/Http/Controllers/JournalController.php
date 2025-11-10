@@ -411,7 +411,7 @@ class JournalController extends Controller
         $request->validate([
             'date_issued' => 'date',
             'debt_code' => 'required|exists:chart_of_accounts,id',
-            'cred_code' => 'required|exists:chart_of_accounts,id',
+            'cred_code' => 'required|exists:chart_of_accounts,id|different:debt_code',
             'amount' => 'required|numeric',
             'trx_type' => 'required',
             'admin_fee' => 'numeric|min:0',
@@ -434,12 +434,12 @@ class JournalController extends Controller
             ], 500);
         }
 
-        if ($request->debt_code == $request->cred_code) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Akun debet dan kredit tidak boleh sama'
-            ], 500);
-        }
+        // if ($request->debt_code == $request->cred_code) {
+        //     return response()->json([
+        //         'success' => false,
+        //         'message' => 'Akun debet dan kredit tidak boleh sama'
+        //     ], 500);
+        // }
 
         DB::beginTransaction();
         try {
