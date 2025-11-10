@@ -449,7 +449,7 @@ class JournalController extends Controller
                 'trx_type' => $request->trx_type,
                 'description' => $description,
                 'user_id' => auth()->user()->id,
-                'warehouse_id' => auth()->user()->role->warehouse_id
+                'warehouse_id' => $request->warehouse_id ?? auth()->user()->role->warehouse_id
             ]);
 
             if ($request->admin_fee > 0) {

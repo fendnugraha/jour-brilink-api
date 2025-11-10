@@ -9,6 +9,7 @@ use App\Models\ChartOfAccount;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\ChartOfAccountResource;
 use App\Models\AccountBalance;
+use Illuminate\Container\Attributes\DB;
 
 class ChartOfAccountController extends Controller
 {
@@ -112,6 +113,7 @@ class ChartOfAccountController extends Controller
             ]
         );
 
+        DB::beginTransaction();
         try {
             $chartOfAccount->update([
                 'acc_name' => $request->acc_name,
@@ -119,11 +121,14 @@ class ChartOfAccountController extends Controller
                 'st_balance' => $request->st_balance ?? 0,
             ]);
 
+            DB::commit();
+
             return response()->json([
                 'message' => 'Chart of account updated successfully',
                 'chart_of_account' => $chartOfAccount
             ], 200);
         } catch (\Exception $e) {
+            DB::rollBack();
             Log::error('Failed to update chart of account: ' . $e->getMessage());
 
             return response()->json([
