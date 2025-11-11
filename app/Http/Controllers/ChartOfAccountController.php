@@ -5,11 +5,11 @@ namespace App\Http\Controllers;
 use Carbon\Carbon;
 use App\Models\Journal;
 use Illuminate\Http\Request;
+use App\Models\AccountBalance;
 use App\Models\ChartOfAccount;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\ChartOfAccountResource;
-use App\Models\AccountBalance;
-use Illuminate\Container\Attributes\DB;
 
 class ChartOfAccountController extends Controller
 {
@@ -101,6 +101,7 @@ class ChartOfAccountController extends Controller
     public function update(Request $request)
     {
         $chartOfAccount = ChartOfAccount::find($request->id);
+
         $request->validate(
             [
                 'id' => 'required|exists:chart_of_accounts,id',
@@ -124,7 +125,7 @@ class ChartOfAccountController extends Controller
             DB::commit();
 
             return response()->json([
-                'message' => 'Chart of account updated successfully',
+                'message' => 'Account updated from ' . $chartOfAccount->acc_name . ' to ' . $request->acc_name,
                 'chart_of_account' => $chartOfAccount
             ], 200);
         } catch (\Exception $e) {
