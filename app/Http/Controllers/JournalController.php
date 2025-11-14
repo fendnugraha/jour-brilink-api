@@ -603,7 +603,7 @@ class JournalController extends Controller
         $startDate = $startDate ? Carbon::parse($startDate)->startOfDay() : Carbon::now()->startOfDay();
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
-        $expenses = Journal::with('warehouse', 'debt')
+        $expenses = Journal::with('warehouse', 'cred:id,acc_name')
             ->where(function ($query) use ($warehouse) {
                 if ($warehouse === "all") {
                     $query;
