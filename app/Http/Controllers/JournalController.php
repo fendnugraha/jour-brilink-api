@@ -367,6 +367,13 @@ class JournalController extends Controller
             'price.numeric' => 'Harga deposit harus berupa angka.',
         ]);
 
+        if ($request->cost > $request->price) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Harga jualan tidak boleh lebih besar dari harga modal'
+            ], 500);
+        }
+
         // $modal = $request->modal * $request->qty;
         $price = $request->price;
         $cost = $request->cost;
