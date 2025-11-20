@@ -359,18 +359,19 @@ class JournalController extends Controller
         $journal = new Journal();
         $request->validate([
             'cost' => 'required|numeric',
-            'price' => 'required|numeric',
+            'price' => 'required|numeric|min:' . $request->cost,
         ], [
             'cost.required' => 'Biaya deposit harus diisi.',
             'cost.numeric' => 'Biaya deposit harus berupa angka.',
             'price.required' => 'Harga deposit harus diisi.',
             'price.numeric' => 'Harga deposit harus berupa angka.',
+            'price.min' => 'Harga jual harus lebih besar atau sama dengan harga modal.',
         ]);
 
         if ($request->cost > $request->price) {
             return response()->json([
                 'success' => false,
-                'message' => 'Harga jualan tidak boleh lebih besar dari harga modal'
+                'message' => 'Harga jualan tidak boleh lebih besar dari harga modal.'
             ], 500);
         }
 
