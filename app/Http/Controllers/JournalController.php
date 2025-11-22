@@ -163,7 +163,9 @@ class JournalController extends Controller
         //         'message' => 'Journal cannot be deleted because it has transactions'
         //     ]);
         // }
-        if (Carbon::parse($journal->date_issued)->lt(Carbon::now()->startOfDay()) && auth()->user()->role->role !== 'Super Admin') {
+        $issued = Carbon::parse($journal->date_issued);
+
+        if (!$issued->isToday() && auth()->user()->roles->role !== 'Super Admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
@@ -302,6 +304,13 @@ class JournalController extends Controller
         $cost = Product::find($request->product_id)->cost;
         $modal = $cost * $request->qty;
 
+        if ($cost > $price) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Harga jualan tidak boleh lebih besar dari harga modal.'
+            ], 500);
+        }
+
         $description = $request->description ?? "Penjualan Voucher & SP";
         $fee = $price - $modal;
         $invoice = $journal->invoice_journal();
@@ -359,13 +368,14 @@ class JournalController extends Controller
         $journal = new Journal();
         $request->validate([
             'cost' => 'required|numeric',
-            'price' => 'required|numeric|min:' . $request->cost,
+            'price' => 'required|numeric|gte:cost',
+            // 'price' => 'required|numeric|min:' . $request->cost,
         ], [
             'cost.required' => 'Biaya deposit harus diisi.',
             'cost.numeric' => 'Biaya deposit harus berupa angka.',
             'price.required' => 'Harga deposit harus diisi.',
             'price.numeric' => 'Harga deposit harus berupa angka.',
-            'price.min' => 'Harga jual harus lebih besar atau sama dengan harga modal.',
+            'price.gte' => 'Harga jual harus lebih besar atau sama dengan harga modal.',
         ]);
 
         if ($request->cost > $request->price) {
