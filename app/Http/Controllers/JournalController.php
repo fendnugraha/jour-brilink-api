@@ -240,6 +240,12 @@ class JournalController extends Controller
             ], 500);
         }
 
+        if ($request->fee_amount != $request->amount && $request->trx_type == 'Bank Fee') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Fee Bank tidak boleh berbeda dengan jumlah transfer'
+            ], 500);
+        }
 
         DB::beginTransaction();
         try {

@@ -470,7 +470,7 @@ class ChartOfAccountController extends Controller
                 'count' => (int) ($trxForSalesCount['Accessories']->total_count ?? 0)
             ],
             'totalExpense' => (int) ($trxForSalesCount['Pengeluaran']->total_fee ?? 0),
-            'totalBankFee' => (int) ($trxForSalesCount['Bank Fee']->total_amount ?? 0),
+            'totalBankFee' => (int) ($trxForSalesCount['Bank Fee']->total_fee ?? 0),
             'totalFee' => (int) ($totalFee->total_fee_positive ?? 0),
             'totalCorrection' => (int) ($trxForSalesCount['Correction']->total_fee ?? 0),
             'profit' => (int) ($totalFee->total_fee ?? 0),
