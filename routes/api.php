@@ -10,6 +10,7 @@ use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WarehouseController;
+use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\CorrectionController;
 use App\Http\Controllers\LogActivityController;
 use App\Http\Controllers\TransactionController;
@@ -88,4 +89,11 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     //Correction
     Route::apiResource('correction', CorrectionController::class);
+
+    //Attendance
+    Route::post('create-attendance', [AttendanceController::class, 'createAttendance']);
+    Route::get('attendance-check/{date}/{userId}', [AttendanceController::class, 'attendanceCheck']);
+
+    //warehouse
+    Route::put('update-warehouse-location/{warehouse}', [WarehouseController::class, 'updateWarehouseLocation']);
 });

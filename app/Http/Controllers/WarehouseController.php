@@ -97,6 +97,7 @@ class WarehouseController extends Controller
             'name' => 'required|min:3|max:90',
             'address' => 'required|min:3|max:160',
             'chart_of_account_id' => 'required',
+            'contact_id' => 'exists:contacts,id',
         ]);
 
         DB::beginTransaction();
@@ -105,7 +106,8 @@ class WarehouseController extends Controller
             $warehouse->update([
                 'name' => strtoupper($request->name),
                 'address' => $request->address,
-                'chart_of_account_id' => $request->chart_of_account_id
+                'chart_of_account_id' => $request->chart_of_account_id,
+                'contact_id' => $request->contact_id
             ]);
 
             // Update the related ChartOfAccount with the warehouse ID
@@ -181,5 +183,36 @@ class WarehouseController extends Controller
             'success' => true,
             'data' => $warehouses
         ], 200);
+    }
+
+    public function updateWarehouseLocation(Request $request, Warehouse $warehouse)
+    {
+        $request->validate([
+            'latitude' => 'required',
+            'longitude' => 'required',
+        ]);
+
+        Log::info($request->all());
+
+        try {
+            $warehouse->update([
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Warehouse location updated successfully',
+                'data' => $warehouse
+            ], 200);
+        } catch (\Exception $e) {
+            // Flash an error message
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Warehouse location update failed',
+                'data' => $e->getMessage()
+            ], 500);
+        }
     }
 }

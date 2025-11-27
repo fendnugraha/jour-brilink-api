@@ -27,4 +27,9 @@ class Warehouse extends Model
     {
         return $this->hasMany(Transaction::class);
     }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
+    }
 }
