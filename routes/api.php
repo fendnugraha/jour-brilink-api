@@ -96,4 +96,6 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     //warehouse
     Route::put('update-warehouse-location/{warehouse}', [WarehouseController::class, 'updateWarehouseLocation']);
+    Route::put('warehouse/{warehouse}/reset-location', [WarehouseController::class, 'resetLocation']);
+    Route::get('get-warehouse-attendance/{date}', [AttendanceController::class, 'getWarehouseAttendance']);
 });

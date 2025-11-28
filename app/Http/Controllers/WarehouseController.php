@@ -18,7 +18,7 @@ class WarehouseController extends Controller
      */
     public function index(Request $request)
     {
-        $warehouses = Warehouse::with('ChartOfAccount')
+        $warehouses = Warehouse::with(['ChartOfAccount:id,acc_name', 'contact:id,name'])
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', '%' . $search . '%');
             })->paginate(5)->onEachSide(0);
@@ -107,7 +107,8 @@ class WarehouseController extends Controller
                 'name' => strtoupper($request->name),
                 'address' => $request->address,
                 'chart_of_account_id' => $request->chart_of_account_id,
-                'contact_id' => $request->contact_id
+                'contact_id' => $request->contact_id ?? null,
+                'zone_name' => $request->zone_name
             ]);
 
             // Update the related ChartOfAccount with the warehouse ID
@@ -198,6 +199,7 @@ class WarehouseController extends Controller
             $warehouse->update([
                 'latitude' => $request->latitude,
                 'longitude' => $request->longitude,
+                'address' => $request->address
             ]);
 
             return response()->json([
@@ -211,6 +213,30 @@ class WarehouseController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Warehouse location update failed',
+                'data' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function resetLocation(Warehouse $warehouse)
+    {
+        try {
+            $warehouse->update([
+                'latitude' => null,
+                'longitude' => null,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Warehouse location reset successfully',
+                'data' => $warehouse
+            ], 200);
+        } catch (\Exception $e) {
+            // Flash an error message
+            Log::error($e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Warehouse location reset failed',
                 'data' => $e->getMessage()
             ], 500);
         }

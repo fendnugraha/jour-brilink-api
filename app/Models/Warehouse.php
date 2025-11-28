@@ -32,4 +32,9 @@ class Warehouse extends Model
     {
         return $this->belongsTo(Contact::class);
     }
+
+    public function attendance()
+    {
+        return $this->hasMany(Attendance::class);
+    }
 }

@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Number;
 use App\Helpers\DistanceHelper;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -68,6 +69,15 @@ class AttendanceController extends Controller
         //
     }
 
+    public function getWarehouseAttendance($date)
+    {
+        $warehouses = Warehouse::with(['attendance' => function ($query) use ($date) {
+            $query->whereDate('date', Carbon::parse($date)->toDateString());
+        }])->get();
+
+        return response()->json(['success' => true, 'data' => $warehouses]);
+    }
+
     public function createAttendance(Request $request)
     {
         $request->validate([
@@ -105,6 +115,7 @@ class AttendanceController extends Controller
             Attendance::create([
                 'user_id' => auth()->id(),
                 'contact_id' => $contact ?? null,
+                'warehouse_id' => $warehouseId,
                 'photo'   => $path,
                 'date'    => now(),
                 'ip'      => $request->ip(),
