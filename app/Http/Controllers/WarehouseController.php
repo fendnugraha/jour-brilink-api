@@ -19,6 +19,9 @@ class WarehouseController extends Controller
     public function index(Request $request)
     {
         $warehouses = Warehouse::with(['ChartOfAccount:id,acc_name', 'contact:id,name'])
+            ->when($request->status, function ($query, $status) {
+                $query->where('status', $status);
+            })
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', '%' . $search . '%');
             })->paginate(20)->onEachSide(0);
