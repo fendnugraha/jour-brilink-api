@@ -71,7 +71,7 @@ class AttendanceController extends Controller
 
     public function getWarehouseAttendance($date)
     {
-        $warehouses = Warehouse::with(['attendance' => function ($query) use ($date) {
+        $warehouses = Warehouse::with(['contact:id,name', 'attendance' => function ($query) use ($date) {
             $query->whereDate('date', Carbon::parse($date)->toDateString());
         }])->get();
 
