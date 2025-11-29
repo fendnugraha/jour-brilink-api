@@ -1114,7 +1114,7 @@ class JournalController extends Controller
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
 
         $journal = Journal::with(['debt.warehouse' => function ($query) {
-            $query->select('id', 'name');
+            $query->select('id', 'name', 'latitude', 'longitude');
         }, 'cred'])
             ->whereBetween('date_issued', [$startDate, $endDate])
             ->where('trx_type', 'Mutasi Kas')
