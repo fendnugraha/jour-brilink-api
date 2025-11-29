@@ -21,7 +21,7 @@ class WarehouseController extends Controller
         $warehouses = Warehouse::with(['ChartOfAccount:id,acc_name', 'contact:id,name'])
             ->when($request->search, function ($query, $search) {
                 $query->where('name', 'like', '%' . $search . '%');
-            })->paginate(10)->onEachSide(0);
+            })->get();
         return new ChartOfAccountResource($warehouses, true, "Successfully fetched warehouses");
     }
 
