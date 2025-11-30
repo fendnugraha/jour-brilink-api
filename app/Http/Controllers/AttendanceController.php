@@ -93,7 +93,8 @@ class AttendanceController extends Controller
             'attendance' => function ($query) use ($date) {
                 $query->whereDate('date', Carbon::parse($date));
             },
-            'attendance.contact:id,name'  // tidak pakai closure
+            'attendance.contact:id,name',  // tidak pakai closure
+            'zone'
         ])
             ->where('id', '!=', 1)
             ->where('status', 1)
