@@ -12,7 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('warehouses', function (Blueprint $table) {
-            $table->string('zone_name')->nullable();
+            $table->time('opening_time')->nullable();
+            $table->foreignId('warehouse_zone_id')->nullable()->constrained('warehouse_zones')->onDelete('set null');
             $table->decimal('longitude', 10, 7)->nullable();
             $table->decimal('latitude', 10, 7)->nullable();
             $table->foreignId('contact_id')->nullable()->constrained('contacts')->onDelete('set null');
@@ -25,7 +26,9 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('warehouses', function (Blueprint $table) {
-            $table->dropColumn('zone_name');
+            $table->dropColumn('opening_time');
+            $table->dropForeign(['warehouse_zone_id']);
+            $table->dropColumn('warehouse_zone_id');
             $table->dropColumn('longitude');
             $table->dropColumn('latitude');
             $table->dropForeign(['contact_id']);

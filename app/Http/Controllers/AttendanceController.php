@@ -11,6 +11,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
+use function Symfony\Component\Clock\now;
+
 class AttendanceController extends Controller
 {
     /**
@@ -58,7 +60,22 @@ class AttendanceController extends Controller
      */
     public function update(Request $request, Attendance $attendance)
     {
-        //
+        $request->validate([
+            'contact_id' => 'required|exists:contacts,id',
+            'time_in' => 'required|date_format:H:i:s',
+        ]);
+
+        try {
+            $attendance->update([
+                'contact_id' => $request->contact_id,
+                'time_in' => $request->time_in,
+                'approval_status' => $request->approval_status,
+            ]);
+            return response()->json(['success' => true, 'data' => $attendance, 'message' => 'Attendance updated successfully']);
+        } catch (\Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 
     /**
@@ -71,9 +88,17 @@ class AttendanceController extends Controller
 
     public function getWarehouseAttendance($date)
     {
-        $warehouses = Warehouse::with(['contact:id,name', 'attendance' => function ($query) use ($date) {
-            $query->whereDate('date', Carbon::parse($date)->toDateString());
-        }])->get();
+        $warehouses = Warehouse::with([
+            'contact:id,name',
+            'attendance' => function ($query) use ($date) {
+                $query->whereDate('date', Carbon::parse($date));
+            },
+            'attendance.contact:id,name'  // tidak pakai closure
+        ])
+            ->where('id', '!=', 1)
+            ->where('status', 1)
+            ->orderBy('name', 'asc')
+            ->get();
 
         return response()->json(['success' => true, 'data' => $warehouses]);
     }
@@ -87,7 +112,7 @@ class AttendanceController extends Controller
         ]);
 
         $warehouseId = auth()->user()->role->warehouse_id;
-        $office = Warehouse::find($warehouseId);
+        $office = Warehouse::with('zone')->findOrFail($warehouseId);
 
         $distance = DistanceHelper::distanceInMeters(
             $request->latitude,
@@ -96,7 +121,7 @@ class AttendanceController extends Controller
             $office->longitude
         );
 
-        $contact = $request->type === 'Kasir' ? $office->contact_id : null;
+        $contact = $request->type === 'Kasir' ? $office->contact_id : $office->zone->employee_id;
 
         // Batas radius dalam meter (misalnya 50m)
         $maxRadius = 50;
@@ -104,11 +129,17 @@ class AttendanceController extends Controller
         if ($distance > $maxRadius) {
             return response()->json([
                 'success' => false,
-                'message' => "Gagal, Anda berada di luar radius kantor. Jarak: " . Number::format($distance) . " meter"
+                'message' => "Gagal, Anda berada di luar radius cabang. Jarak: " . Number::format($distance) . " meter"
             ], 422);
         }
 
         $path = $request->file('photo')->store('attendance', 'public');
+
+        $time_in = Carbon::parse(now());
+        $work_start = Carbon::parse($office->opening_time);
+        $diff = $time_in->diffInMinutes($work_start);
+
+        $status = $time_in->gt($work_start) ? 'Late' : 'Approved';
 
         DB::beginTransaction();
         try {
@@ -117,11 +148,13 @@ class AttendanceController extends Controller
                 'contact_id' => $contact ?? null,
                 'warehouse_id' => $warehouseId,
                 'photo'   => $path,
+                'time_in' => Carbon::parse($request->time_in)->format('H:i:s') ?? Carbon::parse(now())->format('H:i:s'),
                 'date'    => now(),
                 'ip'      => $request->ip(),
                 'note'    => $request->note,
                 'longitude' => $request->longitude,
                 'latitude' => $request->latitude,
+                'approval_status' => $status
             ]);
 
             DB::commit();

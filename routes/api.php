@@ -14,12 +14,16 @@ use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\CorrectionController;
 use App\Http\Controllers\LogActivityController;
 use App\Http\Controllers\TransactionController;
+use App\Http\Controllers\WarehouseZoneController;
 use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\ProductCategoryController;
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/user', function (Request $request) {
-        return $request->user()->load('role.warehouse');
+        return $request->user()->load([
+            'role.warehouse.contact',
+            'role.warehouse.zone.contact',
+        ]);
     });
 
     Route::apiResource('users', UserController::class);
@@ -91,6 +95,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('correction', CorrectionController::class);
 
     //Attendance
+    Route::apiResource('attendance', AttendanceController::class);
     Route::post('create-attendance', [AttendanceController::class, 'createAttendance']);
     Route::get('attendance-check/{date}/{userId}', [AttendanceController::class, 'attendanceCheck']);
 
@@ -98,4 +103,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::put('update-warehouse-location/{warehouse}', [WarehouseController::class, 'updateWarehouseLocation']);
     Route::put('warehouse/{warehouse}/reset-location', [WarehouseController::class, 'resetLocation']);
     Route::get('get-warehouse-attendance/{date}', [AttendanceController::class, 'getWarehouseAttendance']);
+
+    //zone
+    Route::apiResource('zones', WarehouseZoneController::class);
+    // Route::get('get-all-zones', [WarehouseZoneController::class, 'getAllZones']);
 });

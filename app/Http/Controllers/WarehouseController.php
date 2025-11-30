@@ -18,7 +18,7 @@ class WarehouseController extends Controller
      */
     public function index(Request $request)
     {
-        $warehouses = Warehouse::with(['ChartOfAccount:id,acc_name', 'contact:id,name'])
+        $warehouses = Warehouse::with(['ChartOfAccount:id,acc_name', 'contact:id,name', 'zone'])
             ->when($request->status, function ($query, $status) {
                 $query->where('status', $status);
             })
@@ -101,6 +101,8 @@ class WarehouseController extends Controller
             'address' => 'required|min:3|max:160',
             'chart_of_account_id' => 'required',
             'contact_id' => 'exists:contacts,id',
+            'warehouse_zone_id' => 'exists:warehouse_zones,id|nullable',
+            'opening_time' => 'nullable|date_format:H:i',
         ]);
 
         DB::beginTransaction();
@@ -111,7 +113,8 @@ class WarehouseController extends Controller
                 'address' => $request->address,
                 'chart_of_account_id' => $request->chart_of_account_id,
                 'contact_id' => $request->contact_id ?? null,
-                'zone_name' => $request->zone_name
+                'warehouse_zone_id' => $request->warehouse_zone_id ?? null,
+                'opening_time' => $request->opening_time
             ]);
 
             // Update the related ChartOfAccount with the warehouse ID

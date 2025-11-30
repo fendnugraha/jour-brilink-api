@@ -37,4 +37,9 @@ class Warehouse extends Model
     {
         return $this->hasMany(Attendance::class);
     }
+
+    public function zone()
+    {
+        return $this->belongsTo(WarehouseZone::class, 'warehouse_zone_id', 'id');
+    }
 }

@@ -43,4 +43,9 @@ class Attendance extends Model
     {
         return $this->belongsTo(Warehouse::class);
     }
+
+    public function contact()
+    {
+        return $this->belongsTo(Contact::class);
+    }
 }

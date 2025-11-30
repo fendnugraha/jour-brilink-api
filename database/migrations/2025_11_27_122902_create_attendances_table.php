@@ -17,15 +17,16 @@ return new class extends Migration
             $table->foreignId('contact_id')->nullable()->constrained('contacts')->onDelete('set null');
             $table->foreignId('warehouse_id')->nullable()->constrained('warehouses')->onDelete('set null');
             $table->date('date');
+            $table->time('time_in')->nullable();
             $table->string('photo')->nullable();
             $table->decimal('latitude', 10, 7)->nullable();
             $table->decimal('longitude', 10, 7)->nullable();
             $table->string('ip')->nullable();
-            $table->enum('approval_status', ['Pending', 'Approved', 'Rejected'])->default('Pending');
+            $table->enum('approval_status', ['Pending', 'Approved', 'Rejected', 'Good', 'Late'])->default('Pending');
             $table->text('note')->nullable();
             $table->timestamps();
 
-            $table->unique(['warehouse_id', 'date'], 'warehouse_date_unique');
+            $table->unique(['warehouse_id', 'date', 'user_id'], 'unique_warehouse_date_user');
         });
     }
 
