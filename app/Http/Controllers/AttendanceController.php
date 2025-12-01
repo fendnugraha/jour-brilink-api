@@ -119,7 +119,7 @@ class AttendanceController extends Controller
         $start = $parsed->copy()->startOfMonth();
         $end   = $parsed->copy()->endOfMonth();
 
-        $attendance = Attendance::whereBetween('date', [$start, $end])
+        $attendance = Attendance::with('contact')->whereBetween('date', [$start, $end])
             ->where('contact_id', $contactId)
             ->get();
 
@@ -165,7 +165,9 @@ class AttendanceController extends Controller
         $work_start = Carbon::parse($office->opening_time);
         $diff = $time_in->diffInMinutes($work_start);
 
-        $status = $time_in->gt($work_start) ? 'Late' : 'Approved';
+        $check = Attendance::whereDate('date', now())->count();
+        Log::info($check);
+        $status = $time_in->gt($work_start) ? 'Late' : ($check === 0 ? 'Good' : 'Approved');
 
         DB::beginTransaction();
         try {
