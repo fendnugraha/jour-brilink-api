@@ -104,6 +104,31 @@ class AttendanceController extends Controller
         return response()->json(['success' => true, 'data' => $warehouses]);
     }
 
+    public function getAttendanceByContact(Request $request)
+    {
+        $warehouseId = auth()->user()->role->warehouse_id;
+        $date = Carbon::parse($request->date) ?? now()->format('Y-m-d');
+
+        $att = Attendance::where('warehouse_id', $warehouseId)->whereDate('date', $date)->first();
+        Log::info($att);
+        $contactId = $request->contact_id ?? $att->contact_id;
+
+        Log::info("Contact ID: " . $contactId);
+        $parsed = Carbon::parse($date);
+
+        $start = $parsed->copy()->startOfMonth();
+        $end   = $parsed->copy()->endOfMonth();
+
+        $attendance = Attendance::whereBetween('date', [$start, $end])
+            ->where('contact_id', $contactId)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $attendance
+        ]);
+    }
+
     public function createAttendance(Request $request)
     {
         $request->validate([

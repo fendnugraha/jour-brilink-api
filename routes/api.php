@@ -98,6 +98,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::apiResource('attendance', AttendanceController::class);
     Route::post('create-attendance', [AttendanceController::class, 'createAttendance']);
     Route::get('attendance-check/{date}/{userId}', [AttendanceController::class, 'attendanceCheck']);
+    Route::get('get-attendance-by-contact', [AttendanceController::class, 'getAttendanceByContact']);
 
     //warehouse
     Route::put('update-warehouse-location/{warehouse}', [WarehouseController::class, 'updateWarehouseLocation']);
