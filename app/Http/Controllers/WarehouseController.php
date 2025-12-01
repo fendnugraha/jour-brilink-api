@@ -102,7 +102,6 @@ class WarehouseController extends Controller
             'chart_of_account_id' => 'required',
             'contact_id' => 'exists:contacts,id',
             'warehouse_zone_id' => 'exists:warehouse_zones,id|nullable',
-            'opening_time' => 'nullable|date_format:H:i',
         ]);
 
         DB::beginTransaction();

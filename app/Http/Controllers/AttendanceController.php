@@ -165,9 +165,14 @@ class AttendanceController extends Controller
         $work_start = Carbon::parse($office->opening_time);
         $diff = $time_in->diffInMinutes($work_start);
 
-        $check = Attendance::whereDate('date', now())->count();
+        $check = Attendance::whereDate('date', today())
+            ->whereHas('warehouse.zone', function ($q) use ($office) {
+                $q->where('id', $office->warehouse_zone_id); // zone id = 1
+            })
+            ->exists();
+
         Log::info($check);
-        $status = $time_in->gt($work_start) ? 'Late' : ($check === 0 ? 'Good' : 'Approved');
+        $status = $time_in->gt($work_start) ? 'Late' : ($check === true ? 'Approved' : 'Good');
 
         DB::beginTransaction();
         try {
