@@ -65,6 +65,10 @@ class AttendanceController extends Controller
             'time_in' => 'required|date_format:H:i:s',
         ]);
 
+        if (auth()->user()->role->role !== 'Super Admin') {
+            return response()->json(['success' => false, 'message' => 'You are not authorized.'], 403);
+        }
+
         try {
             $attendance->update([
                 'contact_id' => $request->contact_id,
@@ -164,15 +168,9 @@ class AttendanceController extends Controller
         $time_in = Carbon::parse(now());
         $work_start = Carbon::parse($office->opening_time);
         $diff = $time_in->diffInMinutes($work_start);
+        Log::info($diff);
 
-        $check = Attendance::whereDate('date', today())
-            ->whereHas('warehouse.zone', function ($q) use ($office) {
-                $q->where('id', $office->warehouse_zone_id); // zone id = 1
-            })
-            ->exists();
-
-        Log::info($check);
-        $status = $time_in->gt($work_start) ? 'Late' : ($check === true ? 'Approved' : 'Good');
+        $status = $time_in->gt($work_start) ? 'Late' : 'Approved';
 
         DB::beginTransaction();
         try {
@@ -202,7 +200,7 @@ class AttendanceController extends Controller
 
     public function attendanceCheck($date, $userId)
     {
-        $attendance = Attendance::where('user_id', $userId)->whereDate('date', $date)->first();
+        $attendance = Attendance::with('contact:id,name')->where('user_id', $userId)->whereDate('date', $date)->first();
         return response()->json(['success' => true, 'data' => $attendance]);
     }
 }
