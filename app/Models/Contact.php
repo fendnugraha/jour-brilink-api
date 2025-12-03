@@ -17,4 +17,14 @@ class Contact extends Model
     {
         return $this->hasMany(Finance::class);
     }
+
+    public function attendances()
+    {
+        return $this->hasMany(Attendance::class);
+    }
+
+    public function warehouse()
+    {
+        return $this->hasOne(Warehouse::class, 'contact_id');
+    }
 }

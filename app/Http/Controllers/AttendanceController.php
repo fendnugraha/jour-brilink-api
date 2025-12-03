@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use Illuminate\Http\Request;
 use Illuminate\Support\Number;
 use App\Helpers\DistanceHelper;
+use App\Models\Contact;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -154,12 +155,12 @@ class AttendanceController extends Controller
         $contact = $request->type === 'Kasir' ? $office->contact_id : $office->zone->employee_id;
 
         // Batas radius dalam meter (misalnya 50m)
-        $maxRadius = 50;
+        $maxRadius = 100;
 
         if ($distance > $maxRadius) {
             return response()->json([
                 'success' => false,
-                'message' => "Gagal, Anda berada di luar radius cabang. Jarak: " . Number::format($distance) . " meter"
+                'message' => "Gagal, Anda berada di luar radius cabang. Jarak: " . Number::format($distance, 2) . " meter"
             ], 422);
         }
 
@@ -202,5 +203,65 @@ class AttendanceController extends Controller
     {
         $attendance = Attendance::with('contact:id,name')->where('user_id', $userId)->whereDate('date', $date)->first();
         return response()->json(['success' => true, 'data' => $attendance]);
+    }
+
+    function generateCalendarDays($year, $month)
+    {
+        $start = Carbon::create($year, $month, 1);
+        $end   = $start->copy()->endOfMonth();
+
+        $days = [];
+        while ($start->lte($end)) {
+            $days[] = $start->format('Y-m-d');
+            $start->addDay();
+        }
+
+        return $days;
+    }
+
+    public function getAttendanceMonthly($date)
+    {
+        $date = Carbon::parse($date) ?? now()->format('Y-m-d');
+
+        $year  = Carbon::parse($date)->year;
+        $month = Carbon::parse($date)->month;
+        $days  = $this->generateCalendarDays($year, $month);
+
+        $contacts = Contact::with(['warehouse:id,name', 'attendances' => function ($q) use ($year, $month) {
+            $q->whereYear('date', $year)
+                ->whereMonth('date', $month);
+        }])
+            ->where('type', 'Employee')
+            ->whereHas('warehouse')
+            ->orderBy('name')
+            ->get();
+
+        $contacts->transform(function ($contact) use ($days) {
+
+            // Buat array default (semua tanggal = null)
+            $mapped = [];
+            foreach ($days as $day) {
+                $mapped[$day] = null;
+            }
+
+            // Isi tanggal yang ada attendance-nya
+            foreach ($contact->attendances as $att) {
+                $mapped[$att->date] = [
+                    'time_in'    => $att->time_in,
+                    'status'     => $att->approval_status,
+                    'photo_url'  => $att->photo_url,
+                ];
+            }
+
+            $contact->attendance_by_date = $mapped;
+            unset($contact->attendances);
+
+            return $contact;
+        });
+
+        return response()->json([
+            'days' => $days,
+            'employees' => $contacts
+        ]);
     }
 }
