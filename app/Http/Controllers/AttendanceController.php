@@ -232,7 +232,10 @@ class AttendanceController extends Controller
                 ->whereMonth('date', $month);
         }])
             ->where('type', 'Employee')
-            ->whereHas('warehouse')
+            ->whereHas('attendances', function ($q) use ($year, $month) {
+                $q->whereYear('date', $year)
+                    ->whereMonth('date', $month);
+            })
             ->orderBy('name')
             ->get();
 
