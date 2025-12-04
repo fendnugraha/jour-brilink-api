@@ -25,6 +25,6 @@ class Contact extends Model
 
     public function warehouse()
     {
-        return $this->hasOne(Warehouse::class, 'contact_id');
+        return $this->hasOne(Warehouse::class, 'contact_id', 'id');
     }
 }

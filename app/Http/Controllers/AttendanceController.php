@@ -227,7 +227,7 @@ class AttendanceController extends Controller
         $month = Carbon::parse($date)->month;
         $days  = $this->generateCalendarDays($year, $month);
 
-        $contacts = Contact::with(['warehouse:id,name', 'attendances' => function ($q) use ($year, $month) {
+        $contacts = Contact::with(['warehouse', 'attendances' => function ($q) use ($year, $month) {
             $q->whereYear('date', $year)
                 ->whereMonth('date', $month);
         }])
