@@ -155,7 +155,7 @@ class AttendanceController extends Controller
         $contact = $request->type === 'Kasir' ? $office->contact_id : $office->zone->employee_id;
 
         // Batas radius dalam meter (misalnya 50m)
-        $maxRadius = 100;
+        $maxRadius = 50;
 
         if ($distance > $maxRadius) {
             return response()->json([
@@ -192,6 +192,33 @@ class AttendanceController extends Controller
             DB::commit();
 
             return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error($e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function createAttendanceManually(Request $request)
+    {
+        $request->validate([
+            'contact_id' => 'required|exists:contacts,id',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            Attendance::create([
+                'user_id' => auth()->id(),
+                'contact_id' => $request->contact_id,
+                'warehouse_id' => 1,
+                'photo'   => null,
+                'date'    => $request->date ?? now(),
+                'approval_status' => 'Approved'
+            ]);
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'message' => 'Attendance created successfully'], 201);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error($e->getMessage());
@@ -253,6 +280,7 @@ class AttendanceController extends Controller
                     'time_in'    => $att->time_in,
                     'status'     => $att->approval_status,
                     'photo_url'  => $att->photo_url,
+                    'zone'       => $att->warehouse->warehouse_zone_id
                 ];
             }
 

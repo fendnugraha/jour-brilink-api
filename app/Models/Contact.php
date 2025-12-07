@@ -27,4 +27,9 @@ class Contact extends Model
     {
         return $this->hasOne(Warehouse::class, 'contact_id', 'id');
     }
+
+    public function zone()
+    {
+        return $this->hasOne(WarehouseZone::class, 'employee_id', 'id');
+    }
 }
