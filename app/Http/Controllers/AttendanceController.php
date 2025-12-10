@@ -203,6 +203,7 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'contact_id' => 'required|exists:contacts,id',
+            'time_in' => 'required',
         ]);
 
         DB::beginTransaction();
@@ -210,8 +211,9 @@ class AttendanceController extends Controller
             Attendance::create([
                 'user_id' => auth()->id(),
                 'contact_id' => $request->contact_id,
-                'warehouse_id' => 1,
+                'warehouse_id' => $request->warehouse_id ?? 1,
                 'photo'   => null,
+                'time_in' => Carbon::parse($request->time_in)->format('H:i:s') ?? Carbon::parse(now())->format('H:i:s'),
                 'date'    => $request->date ?? now(),
                 'approval_status' => 'Approved'
             ]);
