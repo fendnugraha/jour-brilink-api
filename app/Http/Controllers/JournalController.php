@@ -451,6 +451,13 @@ class JournalController extends Controller
         $cred = ChartOfAccount::find($request->cred_code);
         $confirmation = $cred->account_id == 1 && $cred->warehouse_id == 1 ? $request->confirmation : 1;
 
+        if ($request->cred_code == $request->debt_code) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Akun debet dan kredit tidak boleh sama'
+            ], 500);
+        }
+
         if (Carbon::parse($request->date_issued)->lt(Carbon::now()->startOfDay()) && auth()->user()->role->role !== 'Super Admin') {
             return response()->json([
                 'success' => false,
