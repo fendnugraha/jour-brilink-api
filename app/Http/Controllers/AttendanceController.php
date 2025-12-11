@@ -167,7 +167,7 @@ class AttendanceController extends Controller
         $path = $request->file('photo')->store('attendance', 'public');
 
         $time_in = Carbon::parse(now());
-        $work_start = Carbon::parse($office->opening_time);
+        $work_start = Carbon::parse($office->opening_time)->addMinute();
         $diff = $time_in->diffInMinutes($work_start);
         Log::info($diff);
 
