@@ -101,7 +101,7 @@ class FinanceController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => true,
+                'success' => true,
                 'message' => 'Payable created successfully'
             ]);
         } catch (\Throwable $th) {
@@ -162,7 +162,7 @@ class FinanceController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => true,
+                'success' => true,
                 'message' => 'Payable created successfully'
             ]);
         } catch (\Throwable $th) {
@@ -226,7 +226,7 @@ class FinanceController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => true,
+                'success' => true,
                 'message' => 'Berhasil membuat simpanan wajib karyawan (multiple)'
             ]);
         } catch (\Throwable $th) {
@@ -307,7 +307,7 @@ class FinanceController extends Controller
 
             DB::commit();
             return response()->json([
-                'status' => true,
+                'success' => true,
                 'message' => 'Payable deleted successfully'
             ]);
         } catch (\Throwable $th) {
@@ -320,11 +320,14 @@ class FinanceController extends Controller
         }
     }
 
-    public function getFinanceByContactId($contactId)
+    public function getFinanceByContactId($contactId, Request $request)
     {
         $finance = Finance::with(['contact', 'account'])
             ->selectRaw('contact_id, SUM(bill_amount) as tagihan, SUM(payment_amount) as terbayar, SUM(bill_amount) - SUM(payment_amount) as sisa, finance_type, invoice')
             ->groupBy('contact_id', 'finance_type', 'invoice')
+            ->when($request->has('type'), function ($query) use ($request) {
+                return $query->where('finance_type', $request->type);
+            })
             ->where('contact_id', $contactId)
             ->get();
 
@@ -342,6 +345,7 @@ class FinanceController extends Controller
             ->onEachSide(0);
 
         $financeGroupByContactId = Finance::with('contact')->selectRaw('contact_id, SUM(bill_amount) as tagihan, SUM(payment_amount) as terbayar, SUM(bill_amount) - SUM(payment_amount) as sisa, finance_type')
+            ->where('finance_type', $financeType)
             ->groupBy('contact_id', 'finance_type')->get();
 
         $data = [
@@ -352,9 +356,11 @@ class FinanceController extends Controller
         return new AccountResource($data, true, "Successfully fetched finances");
     }
 
-    public function getInvoiceValue(?string $invoice = null, ?int $contactId = null)
+    public function getInvoiceValue(?string $invoice = null, ?int $contactId = null, ?string $financeType = null)
     {
-        $query = Finance::selectRaw('SUM(bill_amount) - SUM(payment_amount) as sisa');
+        $query = Finance::selectRaw('SUM(bill_amount) - SUM(payment_amount) as sisa')->when($financeType, function ($query) use ($financeType) {
+            return $query->where('finance_type', $financeType);
+        });
 
         if ($invoice) {
             // Hitung per invoice
@@ -382,9 +388,9 @@ class FinanceController extends Controller
         $sisa = $this->getInvoiceValue(invoice: $request->invoice);
         if ($sisa <= 0) {
             return response()->json([
-                'status' => false,
+                'success' => false,
                 'message' => 'Jumlah pembayaran melebihi sisa tagihan'
-            ]);
+            ], 500);
         }
 
         $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
@@ -436,7 +442,7 @@ class FinanceController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => true,
+                'success' => true,
                 'message' => 'Payment created successfully'
             ], 201);
         } catch (\Throwable $th) {
@@ -513,7 +519,83 @@ class FinanceController extends Controller
             DB::commit();
 
             return response()->json([
-                'status' => true,
+                'success' => true,
+                'message' => 'Payment created successfully'
+            ], 201);
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            Log::error($th->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => $th->getMessage()
+            ], 500);
+        }
+    }
+
+    public function EmployeeRcvPayment(Request $request)
+    {
+        $sisa = $this->getInvoiceValue(contactId: $request->contact_id, financeType: 'EmployeeReceivable');
+        if ($sisa <= 0) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Jumlah pembayaran melebihi sisa tagihan'
+            ]);
+        }
+
+        $dateIssued = $request->date_issued ? Carbon::parse($request->date_issued) : Carbon::now();
+        $request->validate(
+            [
+                'contact_id' => 'required|exists:contacts,id',
+                'account_id' => 'required|exists:chart_of_accounts,id',
+                'amount' => 'required|numeric|min:0|max:' . $sisa,
+                'notes' => 'required',
+            ],
+            [
+                'amount.max' => 'Jumlah pembayaran melebihi sisa tagihan : ' . number_format($sisa),
+            ]
+        );
+
+        $payment_nth = Finance::selectRaw('MAX(payment_nth) as payment_nth')->where('contact_id', $request->contact_id)->first()->payment_nth + 1;
+        $payment_status = $this->getInvoiceValue(contactId: $request->contact_id) == 0 ? 1 : 0;
+        $invoice_number = Finance::payment_invoice($request->contact_id);
+
+        DB::beginTransaction();
+        try {
+            Finance::create([
+                'date_issued' => $dateIssued,
+                'due_date' => $dateIssued,
+                'invoice' => $invoice_number,
+                'description' => $request->notes,
+                'bill_amount' => 0,
+                'payment_amount' => $request->amount,
+                'payment_status' => $payment_status,
+                'payment_nth' => $payment_nth,
+                'finance_type' => "EmployeeReceivable",
+                'contact_id' => $request->contact_id,
+                'user_id' => Auth::user()->id,
+                'account_code' => $request->account_id,
+            ]);
+
+            Journal::create([
+                'date_issued' => $dateIssued,
+                'invoice' => $invoice_number,
+                'description' => $request->notes,
+                'debt_code' => ChartOfAccount::EMPLOYEE_RECEIVABLE,
+                'cred_code' => $request->account_id,
+                'amount' => $request->amount,
+                'fee_amount' => 0,
+                'status' => 1,
+                'rcv_pay' => "EmployeeReceivable",
+                'payment_status' => $payment_status,
+                'payment_nth' => $payment_nth,
+                'user_id' => Auth::user()->id,
+                'warehouse_id' => 1
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
                 'message' => 'Payment created successfully'
             ], 201);
         } catch (\Throwable $th) {

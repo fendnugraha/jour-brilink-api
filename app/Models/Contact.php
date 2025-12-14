@@ -32,4 +32,9 @@ class Contact extends Model
     {
         return $this->hasOne(WarehouseZone::class, 'employee_id', 'id');
     }
+
+    public function employee_receivables()
+    {
+        return $this->hasMany(Finance::class)->where('finance_type', 'EmployeeReceivable');
+    }
 }

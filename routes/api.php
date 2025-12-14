@@ -9,6 +9,7 @@ use App\Http\Controllers\ContactController;
 use App\Http\Controllers\FinanceController;
 use App\Http\Controllers\JournalController;
 use App\Http\Controllers\ProductController;
+use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\WarehouseController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\CorrectionController;
@@ -89,6 +90,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-finance-by-contact-id/{contactId}', [FinanceController::class, 'getFinanceByContactId']);
     Route::post('store-payment', [FinanceController::class, 'storePayment']);
     Route::post('deposit-withdraw', [FinanceController::class, 'depositWithdraw']);
+    Route::post('employee-rcv-payment', [FinanceController::class, 'employeeRcvPayment']);
     Route::post('store-saving', [FinanceController::class, 'storeSaving']);
     Route::post('store-saving-multiple', [FinanceController::class, 'storeSavingMultiple']);
 
@@ -113,4 +115,8 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     //zone
     Route::apiResource('zones', WarehouseZoneController::class);
     // Route::get('get-all-zones', [WarehouseZoneController::class, 'getAllZones']);
+
+    //employees
+    Route::apiResource('employees', EmployeeController::class);
+    Route::post('store-payroll', [EmployeeController::class, 'storePayroll']);
 });

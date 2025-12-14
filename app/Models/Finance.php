@@ -64,4 +64,22 @@ class Finance extends Model
 
         return $prefix . '.BK.' . date('dmY') . '.' . $contact_id . '.' . $kd;
     }
+
+    public static function payment_invoice($contact_id)
+    {
+        $prefix = 'PM.BK';
+        $today = now();
+
+        $lastInvoice = DB::table('finances')
+            ->select(DB::raw('MAX(RIGHT(invoice,7)) as kd_max'))
+            ->where('contact_id', $contact_id)
+            ->whereDate('created_at', $today)
+            ->first();
+
+        $nextNumber = $lastInvoice?->kd_max
+            ? str_pad(((int) $lastInvoice->kd_max) + 1, 7, '0', STR_PAD_LEFT)
+            : '0000001';
+
+        return "{$prefix}.{$today->format('dmY')}.{$contact_id}.{$nextNumber}";
+    }
 }

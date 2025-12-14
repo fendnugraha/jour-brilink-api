@@ -209,7 +209,7 @@ class AttendanceController extends Controller
         DB::beginTransaction();
         try {
             Attendance::create([
-                'user_id' => auth()->id(),
+                'user_id' => $request->user_id ?? auth()->id(),
                 'contact_id' => $request->contact_id,
                 'warehouse_id' => $request->warehouse_id ?? 1,
                 'photo'   => null,

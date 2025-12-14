@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class ChartOfAccount extends Model
 {
     const SAVING_ACCOUNT = 160;
+    const EMPLOYEE_RECEIVABLE = 8;
+
     protected $guarded = ['id'];
 
     protected $casts = [
