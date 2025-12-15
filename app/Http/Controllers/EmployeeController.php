@@ -16,15 +16,18 @@ class EmployeeController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
+        $month = $request->month ?? now()->month;
+        $year = $request->year ?? now()->year;
+
         $employees = Employee::with([
             'warningActive',
             'contact:id,name',
             'contact.employee_receivables',
-            'attendances' => function ($q) {
-                $q->whereMonth('date', now()->month)
-                    ->whereYear('date', now()->year);
+            'attendances' => function ($q) use ($month, $year) {
+                $q->whereMonth('date', $month)
+                    ->whereYear('date', $year);
             }
         ])->get();
 

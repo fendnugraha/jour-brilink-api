@@ -37,4 +37,9 @@ class Contact extends Model
     {
         return $this->hasMany(Finance::class)->where('finance_type', 'EmployeeReceivable');
     }
+
+    public function employee()
+    {
+        return $this->belongsTo(Employee::class, 'id', 'contact_id');
+    }
 }

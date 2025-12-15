@@ -22,10 +22,10 @@ use App\Http\Controllers\ProductCategoryController;
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/user', function (Request $request) {
         return $request->user()->load([
-            'role.warehouse.contact',
+            'role.warehouse',
             'role.warehouse.zone.contact',
             'attendances' => function ($q) {
-                $q->whereDate('date', now()->format('Y-m-d'));
+                $q->with('contact.employee.warningActive')->whereDate('date', now()->format('Y-m-d'));
             }
         ]);
     });
