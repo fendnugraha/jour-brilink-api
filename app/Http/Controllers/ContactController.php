@@ -82,7 +82,27 @@ class ContactController extends Controller
      */
     public function update(Request $request, string $id)
     {
-        //
+        $request->validate([
+            'name' => 'required|string|max:60',
+            'type' => 'required|in:Customer,Supplier,Employee',
+            'phone_number' => 'nullable|string|max:15',
+            'address' => 'nullable|string|max:160',
+            'description' => 'nullable|string|max:255'
+        ]);
+
+        $contact = Contact::find($id);
+        $contact->name = $request['name'];
+        $contact->type = $request['type'];
+        $contact->phone_number = $request['phone_number'];
+        $contact->address = $request['address'];
+        $contact->description = $request['description'] ?? 'General Contact';
+        $contact->save();
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Contact updated successfully',
+            'data' => $contact
+        ]);
     }
 
     /**
