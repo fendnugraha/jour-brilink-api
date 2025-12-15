@@ -9,4 +9,6 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote')->hourly();
 
 Schedule::command('accounting:update-balances')->dailyAt('23:59');
+Schedule::command('warnings:expire')->daily();
+
 // Schedule::command('accounting:update-balances')->everyMinute();

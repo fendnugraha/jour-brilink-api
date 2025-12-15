@@ -119,4 +119,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     //employees
     Route::apiResource('employees', EmployeeController::class);
     Route::post('store-payroll', [EmployeeController::class, 'storePayroll']);
+    Route::get('get-payroll', [EmployeeController::class, 'getPayroll']);
+    Route::get('get-payroll-by-date/{date}', [EmployeeController::class, 'getPayrollByDate']);
+    Route::post('add-warning', [EmployeeController::class, 'addWarning']);
 });

@@ -16,6 +16,7 @@ return new class extends Migration
             $table->foreignId('employee_id')->constrained('employees')->onDelete('cascade');
             $table->date('payroll_date');
             $table->decimal('total_gross_pay', 10, 2)->default(0);
+            $table->decimal('total_commissions', 10, 2)->default(0);
             $table->decimal('total_allowances', 10, 2)->default(0);
             $table->decimal('total_deductions', 10, 2)->default(0);
             $table->decimal('net_pay', 10, 2)->default(0);

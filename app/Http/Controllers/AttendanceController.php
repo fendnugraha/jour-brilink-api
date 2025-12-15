@@ -63,7 +63,7 @@ class AttendanceController extends Controller
     {
         $request->validate([
             'contact_id' => 'required|exists:contacts,id',
-            'time_in' => 'required|date_format:H:i:s',
+            'time_in' => 'required',
         ]);
 
         if (auth()->user()->role->role !== 'Super Admin') {
@@ -73,7 +73,7 @@ class AttendanceController extends Controller
         try {
             $attendance->update([
                 'contact_id' => $request->contact_id,
-                'time_in' => $request->time_in,
+                'time_in' => Carbon::parse($request->time_in)->format('H:i:s'),
                 'approval_status' => $request->approval_status,
             ]);
             return response()->json(['success' => true, 'data' => $attendance, 'message' => 'Attendance updated successfully']);

@@ -22,4 +22,14 @@ class Employee extends Model
     {
         return $this->hasMany(Attendance::class, 'contact_id', 'contact_id');
     }
+
+    public function warnings()
+    {
+        return $this->hasMany(EmployeeWarning::class);
+    }
+
+    public function warningActive()
+    {
+        return $this->hasOne(EmployeeWarning::class)->where('is_active', true)->latestOfMany();
+    }
 }

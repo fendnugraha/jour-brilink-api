@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+use App\Models\Payroll;
 use App\Models\Employee;
 use Illuminate\Http\Request;
+use App\Models\EmployeeWarning;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
-use App\Models\Payroll;
-use Carbon\Carbon;
 
 class EmployeeController extends Controller
 {
@@ -18,10 +19,11 @@ class EmployeeController extends Controller
     public function index()
     {
         $employees = Employee::with([
+            'warningActive',
             'contact:id,name',
             'contact.employee_receivables',
-            'attendances' => function ($query) {
-                $query->whereMonth('date', now()->month)
+            'attendances' => function ($q) {
+                $q->whereMonth('date', now()->month)
                     ->whereYear('date', now()->year);
             }
         ])->get();
@@ -49,6 +51,10 @@ class EmployeeController extends Controller
             'hire_date' => 'required|date',
             // 'status' => 'required|in:active,inactive,retired,terminated,resigned',
         ]);
+
+        if (Employee::where('contact_id', $request->contact_id)->exists()) {
+            return response()->json(['success' => false, 'message' => 'Kontak sudah menjadi karyawan'], 400);
+        }
 
         DB::beginTransaction();
         try {
@@ -139,7 +145,8 @@ class EmployeeController extends Controller
                         $request->month,
                         1
                     )->endOfMonth(),
-                    'total_gross_pay'    => $grossPay,
+                    'total_gross_pay'    => $basicSalary,
+                    'total_commissions'   => $commission,
                     'total_allowances'   => $totalBonus,
                     'total_deductions'   => $totalDeduction,
                     'net_pay'            => $netPay,
@@ -176,5 +183,74 @@ class EmployeeController extends Controller
                 'message' => $e->getMessage(),
             ], 422);
         }
+    }
+
+    public function getPayroll()
+    {
+        $payroll = Payroll::with([
+            'employee.contact',
+            'items',
+        ])
+            ->selectRaw('payroll_date, employee_id, SUM(total_gross_pay) as total_gross_pay, SUM(total_commissions) as total_commissions, SUM(total_allowances) as total_allowances, SUM(total_deductions) as total_deductions, SUM(net_pay) as net_pay')
+            ->groupBy('payroll_date', 'employee_id')
+            ->get();
+
+        $payrollTotal = Payroll::selectRaw('payroll_date, SUM(total_gross_pay) as total_gross_pay, SUM(total_commissions) as total_commissions, SUM(total_allowances) as total_allowances, SUM(total_deductions) as total_deductions, SUM(net_pay) as net_pay')
+            ->groupBy('payroll_date')
+            ->get();
+
+        $data = [
+            'payroll' => $payroll,
+            'payrollTotal' => $payrollTotal
+        ];
+
+        return new AccountResource($data, true, "Successfully fetched payroll");
+    }
+
+    public function getPayrollByDate($date)
+    {
+        $payroll = Payroll::with([
+            'employee.contact',
+            'items',
+        ])
+            ->where('payroll_date', $date)
+            ->get();
+
+        return response()->json(['success' => true, 'data' => $payroll]);
+    }
+
+    public function addWarning(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => 'required|exists:employees,id',
+            'level' => 'required|in:SP1,SP2,SP3',
+            'reason' => 'required|string',
+            'date_issued' => 'nullable|date',
+        ]);
+
+        $issuedDate = isset($validated['date_issued'])
+            ? Carbon::parse($validated['date_issued'])
+            : now();
+
+        // clone agar tidak mengubah issued_date
+        $expiredDate = match ($validated['level']) {
+            'SP1' => $issuedDate->copy()->addMonths(3),
+            'SP2' => $issuedDate->copy()->addMonths(6),
+            'SP3' => $issuedDate->copy()->addMonths(6),
+        };
+
+        EmployeeWarning::create([
+            'employee_id' => $validated['employee_id'],
+            'level' => $validated['level'],
+            'reason' => $validated['reason'],
+            'issued_date' => $issuedDate,
+            'expired_date' => $expiredDate,
+            'is_active' => true,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Warning added successfully',
+        ]);
     }
 }
