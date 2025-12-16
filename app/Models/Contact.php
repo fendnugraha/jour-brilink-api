@@ -47,6 +47,14 @@ class Contact extends Model
             ->groupBy('contact_id');
     }
 
+    public function installment_receivables_sum()
+    {
+        return $this->hasOne(Finance::class, 'contact_id')
+            ->where('finance_type', 'InstallmentReceivable')
+            ->select('contact_id', DB::raw('SUM(bill_amount - payment_amount) as total'))
+            ->groupBy('contact_id');
+    }
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'id', 'contact_id');

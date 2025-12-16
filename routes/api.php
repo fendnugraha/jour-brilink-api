@@ -25,7 +25,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
             'role.warehouse',
             'role.warehouse.zone.contact',
             'attendances' => function ($q) {
-                $q->with('contact.employee.warningActive')->whereDate('date', now()->format('Y-m-d'));
+                $q->with([
+                    'contact.employee.warningActive',
+                ])->whereDate('date', now()->format('Y-m-d'));
             }
         ]);
     });

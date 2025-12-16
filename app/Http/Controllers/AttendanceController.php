@@ -124,7 +124,7 @@ class AttendanceController extends Controller
         $start = $parsed->copy()->startOfMonth();
         $end   = $parsed->copy()->endOfMonth();
 
-        $attendance = Attendance::with('contact')->whereBetween('date', [$start, $end])
+        $attendance = Attendance::with('contact.employee', 'contact.employee_receivables_sum', 'contact.installment_receivables_sum')->whereBetween('date', [$start, $end])
             ->where('contact_id', $contactId)
             ->get();
 
