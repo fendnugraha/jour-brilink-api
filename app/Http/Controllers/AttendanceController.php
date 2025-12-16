@@ -282,7 +282,7 @@ class AttendanceController extends Controller
                     'time_in'    => $att->time_in,
                     'status'     => $att->approval_status,
                     'photo_url'  => $att->photo_url,
-                    'zone'       => $att->warehouse->warehouse_zone_id
+                    'zone'       => $att->warehouse->warehouse_zone_id ?? null
                 ];
             }
 

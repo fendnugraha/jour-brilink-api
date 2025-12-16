@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Model;
 
 class Contact extends Model
@@ -36,6 +37,14 @@ class Contact extends Model
     public function employee_receivables()
     {
         return $this->hasMany(Finance::class)->where('finance_type', 'EmployeeReceivable');
+    }
+
+    public function employee_receivables_sum()
+    {
+        return $this->hasOne(Finance::class, 'contact_id')
+            ->where('finance_type', 'EmployeeReceivable')
+            ->select('contact_id', DB::raw('SUM(bill_amount - payment_amount) as total'))
+            ->groupBy('contact_id');
     }
 
     public function employee()

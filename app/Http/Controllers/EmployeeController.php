@@ -10,6 +10,7 @@ use App\Models\EmployeeWarning;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
+use App\Services\EmployeeReceivableService;
 
 class EmployeeController extends Controller
 {
@@ -24,7 +25,7 @@ class EmployeeController extends Controller
         $employees = Employee::with([
             'warningActive',
             'contact:id,name',
-            'contact.employee_receivables',
+            'contact.employee_receivables_sum',
             'attendances' => function ($q) use ($month, $year) {
                 $q->whereMonth('date', $month)
                     ->whereYear('date', $year);
@@ -100,7 +101,30 @@ class EmployeeController extends Controller
      */
     public function update(Request $request, Employee $employee)
     {
-        //
+        $request->validate([
+            // 'status' => 'in:active,inactive,retired,terminated,resigned',
+            'salary' => 'numeric',
+            'commission' => 'numeric',
+            'hire_date' => 'date',
+        ]);
+
+        DB::beginTransaction();
+        try {
+            $employee->update([
+                'status' => $request->status ?? $employee->status,
+                'salary' => $request->salary ?? $employee->salary,
+                'commission' => $request->commission ?? $employee->commission,
+                'hire_date' => $request->hire_date ?? $employee->hire_date,
+            ]);
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'data' => $employee, 'message' => 'Employee updated successfully'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error($e->getMessage());
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
     }
 
     /**
@@ -111,7 +135,7 @@ class EmployeeController extends Controller
         //
     }
 
-    public function storePayroll(Request $request)
+    public function storePayroll(Request $request, EmployeeReceivableService $service)
     {
 
         DB::beginTransaction();
@@ -136,7 +160,7 @@ class EmployeeController extends Controller
                     ->sum('amount');
 
                 $totalDeduction = collect($item['deductions'] ?? [])
-                    ->sum('amount');
+                    ->sum('amount') + $item['employee_receivable'];
 
                 $grossPay = $basicSalary + $commission + $totalBonus;
                 $netPay   = $grossPay - $totalDeduction;
@@ -170,6 +194,21 @@ class EmployeeController extends Controller
                         'type' => 'deduction',
                         'item_name' => $deduction['name'],
                         'amount' => $deduction['amount'],
+                    ]);
+                }
+
+                if ($item['employee_receivable'] > 0) {
+                    $payroll->items()->create([
+                        'type' => 'deduction',
+                        'item_name' => 'Potong Kasbon',
+                        'amount' => $item['employee_receivable'],
+                    ]);
+
+                    $service->pay([
+                        'contact_id' => $item['contact_id'],
+                        'amount' => $item['employee_receivable'],
+                        'account_id' => 1,
+                        'notes' => 'Potongan kasbon bulan ' . now()->format('F Y'),
                     ]);
                 }
             }

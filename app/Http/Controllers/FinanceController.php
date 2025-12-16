@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\AccountResource;
+use App\Services\EmployeeReceivableService;
 
 class FinanceController extends Controller
 {
@@ -534,7 +535,7 @@ class FinanceController extends Controller
 
     public function EmployeeRcvPayment(Request $request)
     {
-        $sisa = $this->getInvoiceValue(contactId: $request->contact_id, financeType: 'EmployeeReceivable');
+        $sisa = $this->getInvoiceValue(contactId: $request->contact_id, financeType: $request->finance_type);
         if ($sisa <= 0) {
             return response()->json([
                 'status' => false,
@@ -570,7 +571,7 @@ class FinanceController extends Controller
                 'payment_amount' => $request->amount,
                 'payment_status' => $payment_status,
                 'payment_nth' => $payment_nth,
-                'finance_type' => "EmployeeReceivable",
+                'finance_type' => $request->finance_type,
                 'contact_id' => $request->contact_id,
                 'user_id' => Auth::user()->id,
                 'account_code' => $request->account_id,
@@ -585,7 +586,7 @@ class FinanceController extends Controller
                 'amount' => $request->amount,
                 'fee_amount' => 0,
                 'status' => 1,
-                'rcv_pay' => "EmployeeReceivable",
+                'rcv_pay' => $request->finance_type,
                 'payment_status' => $payment_status,
                 'payment_nth' => $payment_nth,
                 'user_id' => Auth::user()->id,
@@ -605,6 +606,33 @@ class FinanceController extends Controller
                 'status' => false,
                 'message' => $th->getMessage()
             ], 500);
+        }
+    }
+
+    public function employeeReceivablePayment(
+        Request $request,
+        EmployeeReceivableService $service
+    ) {
+        $request->validate([
+            'contact_id' => 'required|exists:contacts,id',
+            'account_id' => 'required|exists:chart_of_accounts,id',
+            'amount'     => 'required|numeric|min:1',
+            'notes'      => 'required|string',
+        ]);
+
+        try {
+            $result = $service->pay($request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment created successfully',
+                'data' => $result
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 400);
         }
     }
 }
