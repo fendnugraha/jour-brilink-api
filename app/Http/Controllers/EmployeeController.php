@@ -157,10 +157,10 @@ class EmployeeController extends Controller
                 $commission  = $item['commission'] ?? 0;
 
                 $totalBonus = collect($item['bonuses'] ?? [])
-                    ->sum('amount');
+                    ->sum('amount') + $item['overtime'];
 
                 $totalDeduction = collect($item['deductions'] ?? [])
-                    ->sum('amount') + $item['employee_receivable'];
+                    ->sum('amount') + $item['employee_receivable'] + $item['installment_receivable'];
 
                 $grossPay = $basicSalary + $commission + $totalBonus;
                 $netPay   = $grossPay - $totalDeduction;
@@ -209,6 +209,22 @@ class EmployeeController extends Controller
                         'amount' => $item['employee_receivable'],
                         'account_id' => 1,
                         'notes' => 'Potongan kasbon bulan ' . now()->format('F Y'),
+                    ]);
+                }
+
+                if ($item['installment_receivable'] > 0) {
+                    $payroll->items()->create([
+                        'type' => 'deduction',
+                        'item_name' => 'Potong Cicilan',
+                        'amount' => $item['installment_receivable'],
+                    ]);
+
+                    $service->pay([
+                        'contact_id' => $item['contact_id'],
+                        'amount' => $item['installment_receivable'],
+                        'account_id' => 1,
+                        'notes' => 'Potongan kasbon bulan ' . now()->format('F Y'),
+                        'finance_type' => 'InstallmentReceivable',
                     ]);
                 }
             }
