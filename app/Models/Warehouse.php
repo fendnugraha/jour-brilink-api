@@ -23,6 +23,11 @@ class Warehouse extends Model
         return $this->hasMany(Journal::class);
     }
 
+    public function warehouse_expenses()
+    {
+        return $this->hasMany(Journal::class)->where('trx_type', 'Pengeluaran');
+    }
+
     public function transaction()
     {
         return $this->hasMany(Transaction::class);
@@ -41,5 +46,10 @@ class Warehouse extends Model
     public function zone()
     {
         return $this->belongsTo(WarehouseZone::class, 'warehouse_zone_id', 'id');
+    }
+
+    public function warehouses()
+    {
+        return $this->hasMany(Warehouse::class);
     }
 }

@@ -4,16 +4,19 @@ namespace App\Http\Controllers;
 
 use Carbon\Carbon;
 use App\Models\Journal;
+use App\Models\Payroll;
 use App\Models\Product;
 use App\Models\Warehouse;
+use App\Models\LogActivity;
 use App\Models\Transaction;
 use Illuminate\Http\Request;
+use App\Models\AccountBalance;
 use App\Models\ChartOfAccount;
+use function Pest\Laravel\get;
 use Illuminate\Support\Facades\DB;
+
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
-use App\Models\AccountBalance;
-use App\Models\LogActivity;
 
 class JournalController extends Controller
 {
@@ -1156,6 +1159,72 @@ class JournalController extends Controller
             'success' => true,
             'data' => $journal,
             'message' => 'Delivery status has been updated'
+        ], 200);
+    }
+
+    public function getProfitLossReport($warehouse, $month, $year)
+    {
+        $start = Carbon::create($year, $month, 1)->startOfMonth();
+        $end   = Carbon::create($year, $month, 1)->endOfMonth();
+
+        $journal = Journal::selectRaw($warehouse === 'all' ? 'trx_type, SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee_positive, SUM(CASE WHEN fee_amount < 0 THEN fee_amount ELSE 0 END) as total_fee_negative' : 'trx_type, warehouse_id, SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee_positive, SUM(CASE WHEN fee_amount < 0 THEN fee_amount ELSE 0 END) as total_fee_negative')
+            ->whereNotIn('trx_type', ['Mutasi Kas', 'Jurnal Umum'])
+            ->whereBetween('date_issued', [$start, $end])
+            ->when(
+                $warehouse !== 'all',
+                fn($q) =>
+                $q->where('warehouse_id', $warehouse)
+                    ->groupBy('trx_type', 'warehouse_id')
+                    ->orderBy('total_fee_positive', 'desc')
+            )
+            ->when(
+                $warehouse === 'all',
+                fn($q) =>
+                $q->groupBy('trx_type')
+                    ->orderBy('total_fee_positive', 'desc')
+            )
+            ->get();
+
+        $warehouse_data = Warehouse::with([
+            'contact:id,name',
+            'contact.employee:id,contact_id',
+            'contact.employee.payroll' => fn($q) =>
+            $q->where('payroll_date', Carbon::parse($end)->toDateString())->limit(1)
+        ])
+            ->select('id', 'name', 'contact_id')
+            ->when(
+                $warehouse !== 'all',
+                fn($q) =>
+                $q->where('id', $warehouse)
+            )
+            ->get();
+
+        $payrollTotal = Payroll::selectRaw('SUM(total_gross_pay) as total_gross_pay, SUM(total_commissions) as total_commissions, SUM(total_allowances) as total_allowances, SUM(total_deductions) as total_deductions, SUM(net_pay) as net_pay')
+            ->where('payroll_date', Carbon::parse($end)->toDateString())
+            ->first();
+        $expenses = Journal::with('debt:id,acc_name')
+            ->select('id', 'warehouse_id', 'debt_code', 'description', 'trx_type', 'fee_amount', 'date_issued')
+            ->when(
+                $warehouse !== 'all',
+                fn($q) =>
+                $q->where('warehouse_id', $warehouse)
+            )
+            ->whereBetween('date_issued', [$start, $end])
+            ->where('trx_type', 'Pengeluaran')
+            ->get();
+
+        $data = [
+            'warehouse_data' => $warehouse_data,
+            'journal' => $journal,
+            'payrollTotal' => $payrollTotal,
+            'expenses' => $expenses
+        ];
+
+
+
+        return response()->json([
+            'success' => true,
+            'data' => $data
         ], 200);
     }
 }

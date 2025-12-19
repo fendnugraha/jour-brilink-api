@@ -80,6 +80,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('mutation-journal/{startDate}/{endDate}', [JournalController::class, 'mutationJournal']);
     Route::get('get-journal-by-invoice-number/{invoice_number}', [JournalController::class, 'getJournalByInvoiceNumber']);
     Route::put('update-delivery-status/{id}/{status}', [JournalController::class, 'updateDeliveryStatus']);
+    Route::get('get-profit-loss-report/{warehouse}/{month}/{year}', [JournalController::class, 'getProfitLossReport']);
 
     //transactions
     Route::apiResource('transactions', TransactionController::class);
