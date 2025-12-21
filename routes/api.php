@@ -23,6 +23,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/user', function (Request $request) {
         return $request->user()->load([
             'role.warehouse',
+            'role.warehouse.contact',
             'role.warehouse.zone.contact',
             'attendances' => function ($q) {
                 $q->with([
