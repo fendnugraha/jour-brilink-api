@@ -137,6 +137,11 @@ class EmployeeController extends Controller
 
     public function storePayroll(Request $request, EmployeeReceivableService $service)
     {
+        $payrollDate = Carbon::create(
+            $request->year,
+            $request->month,
+            1
+        )->endOfMonth();
 
         DB::beginTransaction();
 
@@ -197,6 +202,14 @@ class EmployeeController extends Controller
                     ]);
                 }
 
+                if ($item['overtime'] > 0) {
+                    $payroll->items()->create([
+                        'type' => 'allowance',
+                        'item_name' => 'Lembur',
+                        'amount' => $item['overtime'],
+                    ]);
+                }
+
                 if ($item['employee_receivable'] > 0) {
                     $payroll->items()->create([
                         'type' => 'deduction',
@@ -207,8 +220,9 @@ class EmployeeController extends Controller
                     $service->pay([
                         'contact_id' => $item['contact_id'],
                         'amount' => $item['employee_receivable'],
+                        'date_issued' => $payrollDate,
                         'account_id' => 1,
-                        'notes' => 'Potongan kasbon bulan ' . now()->format('F Y'),
+                        'notes' => 'Potongan kasbon bulan ' . $payrollDate->format('F Y'),
                     ]);
                 }
 
@@ -222,8 +236,9 @@ class EmployeeController extends Controller
                     $service->pay([
                         'contact_id' => $item['contact_id'],
                         'amount' => $item['installment_receivable'],
+                        'date_issued' => $item['date_issued'],
                         'account_id' => 1,
-                        'notes' => 'Potongan kasbon bulan ' . now()->format('F Y'),
+                        'notes' => 'Potongan kasbon bulan ' . $item['date_issued']->format('F Y'),
                         'finance_type' => 'InstallmentReceivable',
                     ]);
                 }
