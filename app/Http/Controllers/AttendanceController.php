@@ -211,7 +211,7 @@ class AttendanceController extends Controller
             Attendance::create([
                 'user_id' => $request->user_id ?? auth()->id(),
                 'contact_id' => $request->contact_id,
-                'warehouse_id' => $request->warehouse_id ?? 1,
+                'warehouse_id' => $request->warehouse_id ?? null,
                 'photo'   => null,
                 'time_in' => Carbon::parse($request->time_in)->format('H:i:s') ?? Carbon::parse(now())->format('H:i:s'),
                 'date'    => $request->date ?? now(),
