@@ -109,6 +109,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::post('create-attendance-manually', [AttendanceController::class, 'createAttendanceManually']);
     Route::get('attendance-check/{date}/{userId}', [AttendanceController::class, 'attendanceCheck']);
     Route::get('get-attendance-by-contact', [AttendanceController::class, 'getAttendanceByContact']);
+    Route::get('get-contact-details', [AttendanceController::class, 'getContactDetails']);
 
     //warehouse
     Route::put('update-warehouse-location/{warehouse}', [WarehouseController::class, 'updateWarehouseLocation']);
