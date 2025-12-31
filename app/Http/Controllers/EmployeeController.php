@@ -142,6 +142,7 @@ class EmployeeController extends Controller
             $request->month,
             1
         )->endOfMonth();
+        Log::info($payrollDate);
 
         DB::beginTransaction();
 
@@ -236,9 +237,9 @@ class EmployeeController extends Controller
                     $service->pay([
                         'contact_id' => $item['contact_id'],
                         'amount' => $item['installment_receivable'],
-                        'date_issued' => $item['date_issued'],
+                        'date_issued' => $payrollDate,
                         'account_id' => 1,
-                        'notes' => 'Potongan kasbon bulan ' . $item['date_issued']->format('F Y'),
+                        'notes' => 'Potongan kasbon bulan ' . $payrollDate->format('F Y'),
                         'finance_type' => 'InstallmentReceivable',
                     ]);
                 }
