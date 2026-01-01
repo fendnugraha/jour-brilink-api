@@ -283,6 +283,7 @@ class EmployeeController extends Controller
 
     public function getPayrollByDate($date)
     {
+        $date = Carbon::parse($date)->endOfMonth()->format('Y-m-d');
         $payroll = Payroll::with([
             'employee.contact',
             'items',
