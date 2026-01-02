@@ -261,17 +261,41 @@ class EmployeeController extends Controller
 
     public function getPayroll()
     {
-        $payroll = Payroll::with([
-            'employee.contact',
-            'items',
-        ])
-            ->selectRaw('payroll_date, employee_id, SUM(total_gross_pay) as total_gross_pay, SUM(total_commissions) as total_commissions, SUM(total_allowances) as total_allowances, SUM(total_deductions) as total_deductions, SUM(net_pay) as net_pay')
+        $payroll = Payroll::query()
+            ->selectRaw('
+                    payroll_date,
+                    employee_id,
+                    SUM(total_gross_pay) as total_gross_pay,
+                    SUM(total_commissions) as total_commissions,
+                    SUM(total_allowances) as total_allowances,
+                    SUM(total_deductions) as total_deductions,
+                    SUM(net_pay) as net_pay
+                ')
+            ->withSum([
+                'items as total_savings' => function ($q) {
+                    $q->where('item_name', 'Simpanan Wajib');
+                }
+            ], 'amount')
+            ->with('employee.contact')
             ->groupBy('payroll_date', 'employee_id')
             ->get();
 
-        $payrollTotal = Payroll::selectRaw('payroll_date, SUM(total_gross_pay) as total_gross_pay, SUM(total_commissions) as total_commissions, SUM(total_allowances) as total_allowances, SUM(total_deductions) as total_deductions, SUM(net_pay) as net_pay')
-            ->groupBy('payroll_date')
+        $payrollTotal = Payroll::leftJoin('payroll_items', function ($join) {
+            $join->on('payrolls.id', '=', 'payroll_items.payroll_id')
+                ->where('payroll_items.item_name', 'Simpanan Wajib');
+        })
+            ->selectRaw('
+                payrolls.payroll_date,
+                SUM(payrolls.total_gross_pay) as total_gross_pay,
+                SUM(payrolls.total_commissions) as total_commissions,
+                SUM(payrolls.total_allowances) as total_allowances,
+                SUM(payrolls.total_deductions) as total_deductions,
+                SUM(payrolls.net_pay) as net_pay,
+                COALESCE(SUM(payroll_items.amount), 0) as total_savings
+            ')
+            ->groupBy('payrolls.payroll_date')
             ->get();
+
 
         $data = [
             'payroll' => $payroll,
