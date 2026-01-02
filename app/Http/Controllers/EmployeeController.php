@@ -261,24 +261,24 @@ class EmployeeController extends Controller
 
     public function getPayroll()
     {
-        $payroll = Payroll::query()
-            ->selectRaw('
-                    payroll_date,
-                    employee_id,
-                    SUM(total_gross_pay) as total_gross_pay,
-                    SUM(total_commissions) as total_commissions,
-                    SUM(total_allowances) as total_allowances,
-                    SUM(total_deductions) as total_deductions,
-                    SUM(net_pay) as net_pay
-                ')
-            ->withSum([
-                'items as total_savings' => function ($q) {
-                    $q->where('item_name', 'Simpanan Wajib');
-                }
-            ], 'amount')
-            ->with('employee.contact')
-            ->groupBy('payroll_date', 'employee_id')
-            ->get();
+        // $payroll = Payroll::query()
+        //     ->selectRaw('
+        //             payroll_date,
+        //             employee_id,
+        //             SUM(total_gross_pay) as total_gross_pay,
+        //             SUM(total_commissions) as total_commissions,
+        //             SUM(total_allowances) as total_allowances,
+        //             SUM(total_deductions) as total_deductions,
+        //             SUM(net_pay) as net_pay
+        //         ')
+        //     ->withSum([
+        //         'items as total_savings' => function ($q) {
+        //             $q->where('item_name', 'Simpanan Wajib');
+        //         }
+        //     ], 'amount')
+        //     ->with('employee.contact')
+        //     ->groupBy('payroll_date', 'employee_id')
+        //     ->get();
 
         $payrollTotal = Payroll::leftJoin('payroll_items', function ($join) {
             $join->on('payrolls.id', '=', 'payroll_items.payroll_id')
@@ -298,7 +298,7 @@ class EmployeeController extends Controller
 
 
         $data = [
-            'payroll' => $payroll,
+            'payroll' => [],
             'payrollTotal' => $payrollTotal
         ];
 
