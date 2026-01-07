@@ -439,13 +439,17 @@ class JournalController extends Controller
             'date_issued' => 'date',
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id|different:debt_code',
-            'amount' => 'required|numeric',
+            'amount' => 'required|numeric|min:0',
             'trx_type' => 'required',
             'admin_fee' => 'numeric|min:0',
         ], [
             'admin_fee.numeric' => 'Biaya admin harus berupa angka.',
             'debt_code.required' => 'Akun debet harus diisi.',
             'cred_code.required' => 'Akun kredit harus diisi.',
+            'cred_code.different' => 'Akun debet dan kredit tidak boleh sama.',
+            'amount.required' => 'Jumlah harus diisi.',
+            'amount.numeric' => 'Jumlah harus berupa angka.',
+            'amount.min' => 'Jumlah minimal adalah 0.',
         ]);
 
         $description = $request->description ?? 'Mutasi Kas';
