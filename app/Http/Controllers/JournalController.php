@@ -168,7 +168,7 @@ class JournalController extends Controller
         // }
         $issued = Carbon::parse($journal->date_issued);
 
-        if (!$issued->isToday() && auth()->user()->roles->role !== 'Super Admin') {
+        if (!$issued->isToday() && auth()->user()->role->role !== 'Super Admin') {
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menghapus journal. Tanggal journal tidak boleh lebih kecil dari tanggal sekarang.'
