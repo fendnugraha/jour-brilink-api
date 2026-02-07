@@ -10,6 +10,7 @@ use App\Models\EmployeeWarning;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
+use App\Services\AttendanceRatingService;
 use App\Services\EmployeeReceivableService;
 
 class EmployeeController extends Controller
@@ -32,7 +33,16 @@ class EmployeeController extends Controller
             }
         ])->get();
 
-        return new AccountResource($employees, true, "Successfully fetched employees");
+        $ratingService = new AttendanceRatingService();
+
+        foreach ($employees as $employee) {
+            $employee->attendance_rating =
+                $ratingService->calculateFromAttendances(
+                    $employee->attendances
+                );
+        }
+
+        return response()->json(['success' => true, 'data' => $employees]);
     }
 
     /**
@@ -351,5 +361,19 @@ class EmployeeController extends Controller
             'success' => true,
             'message' => 'Warning added successfully',
         ]);
+    }
+
+    public function attendanceRating(
+        AttendanceRatingService $service,
+        $employeeId,
+        Request $request
+    ) {
+        return response()->json(
+            $service->calculate(
+                $employeeId,
+                $request->month,
+                $request->year
+            )
+        );
     }
 }

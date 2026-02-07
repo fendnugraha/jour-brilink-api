@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Number;
 use App\Helpers\DistanceHelper;
 use App\Models\Contact;
+use App\Services\AttendanceRatingService;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -317,5 +318,19 @@ class AttendanceController extends Controller
             'days' => $days,
             'employees' => $contacts
         ]);
+    }
+
+    public function attendanceRating(
+        AttendanceRatingService $service,
+        $employeeId,
+        Request $request
+    ) {
+        return response()->json(
+            $service->calculate(
+                $employeeId,
+                $request->month,
+                $request->year
+            )
+        );
     }
 }
