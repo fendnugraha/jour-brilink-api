@@ -751,7 +751,7 @@ class JournalController extends Controller
         // --- Filter cash/bank accounts ---
         // Filter di sini harus menggunakan relasi 'account' karena acc_id ada di sana
         $sumtotalCash = $chartOfAccounts->filter(function ($coa) {
-            return ($coa->account && $coa->account->id === 1); // Asumsi acc_id 1 untuk Cash
+            return ($coa->account && $coa->account->id === 1 && $coa->id !== 1); // Asumsi acc_id 1 untuk Cash
         });
         $sumtotalBank = $chartOfAccounts->filter(function ($coa) {
             return ($coa->account && $coa->account->id === 2); // Asumsi acc_id 2 untuk Bank
