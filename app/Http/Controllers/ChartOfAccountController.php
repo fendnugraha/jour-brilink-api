@@ -320,35 +320,7 @@ class ChartOfAccountController extends Controller
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
         $previousDate = Carbon::parse($endDate)->subDays()->toDateString();
 
-
-        //     $accountBalances = Journal::selectRaw("
-        //     chart.id as account_id,
-        //     chart.acc_name as account_name,
-        //     chart.st_balance,
-        //     acc.status,
-        //     SUM(CASE WHEN journals.debt_code = chart.id THEN journals.amount ELSE 0 END) as total_debit,
-        //     SUM(CASE WHEN journals.cred_code = chart.id THEN journals.amount ELSE 0 END) as total_credit
-        // ")
-        //         ->join('chart_of_accounts as chart', function ($join) {
-        //             $join->on('journals.debt_code', '=', 'chart.id')
-        //                 ->orOn('journals.cred_code', '=', 'chart.id');
-        //         })
-        //         ->join('accounts as acc', 'chart.account_id', '=', 'acc.id')
-        //         ->where('chart.warehouse_id', $warehouse)
-        //         ->whereBetween('journals.date_issued', [Carbon::create(2010, 1, 1), $endDate])
-        //         ->orderBy('chart.acc_code', 'asc')
-        //         ->groupBy('chart.id', 'chart.st_balance', 'acc.status', 'chart.acc_name')
-        //         ->get();
-
-
-        //     foreach ($accountBalances as $acc) {
-
-        //         $acc->balance = $acc->status === 'D'
-        //             ? $acc->st_balance + $acc->total_debit - $acc->total_credit
-        //             : $acc->st_balance + $acc->total_credit - $acc->total_debit;
-        //     }
-
-        $chartOfAccounts = ChartOfAccount::with('account')->where('warehouse_id', $warehouse)->get();
+        $chartOfAccounts = ChartOfAccount::with(['account', 'limit'])->where('warehouse_id', $warehouse)->get();
 
         foreach ($chartOfAccounts as $chartOfAccount) {
 
@@ -380,7 +352,6 @@ class ChartOfAccountController extends Controller
         $previousDate = Carbon::parse($endDate)->subDays()->toDateString();
 
         $chartOfAccounts = Journal::balancesByWarehouse($warehouse, $endDate);
-
 
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
@@ -508,5 +479,23 @@ class ChartOfAccountController extends Controller
             ->get();
 
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
+    }
+
+    public function updateAccountLimit(Request $request, $id)
+    {
+        $request->validate([
+            'limit' => 'numeric',
+            'diff' => 'numeric'
+        ]);
+
+        $chartOfAccount = ChartOfAccount::findOrFail($id);
+        $chartOfAccount->limit()->updateOrCreate([
+            'chart_of_account_id' => $chartOfAccount->id
+        ], [
+            'limit_amount' => $request->limit,
+            'diff_amount' => $request->diff
+        ]);
+
+        return new ChartOfAccountResource($chartOfAccount, true, "Successfully updated chart of account");
     }
 }

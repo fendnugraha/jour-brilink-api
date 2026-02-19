@@ -49,6 +49,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-expense-accounts', [ChartOfAccountController::class, 'getExpenses']);
     Route::get('get-cash-bank-balance/{warehouse}/{endDate}', [ChartOfAccountController::class, 'getCashBankBalance']);
     Route::get('daily-dashboard', [ChartOfAccountController::class, 'dailyDashboard']);
+    Route::put('update-account-limit/{id}', [ChartOfAccountController::class, 'updateAccountLimit']);
 
     Route::apiResource('products', ProductController::class);
     Route::apiResource('product-categories', ProductCategoryController::class);

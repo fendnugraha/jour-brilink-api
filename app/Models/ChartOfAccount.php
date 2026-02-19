@@ -56,4 +56,9 @@ class ChartOfAccount extends Model
     {
         return $this->belongsTo(Warehouse::class);
     }
+
+    public function limit()
+    {
+        return $this->hasOne(BankAccountLimits::class);
+    }
 }

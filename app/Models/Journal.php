@@ -306,7 +306,7 @@ class Journal extends Model
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
         $previousDate = $endDate->copy()->subDay()->toDateString();
 
-        $chartOfAccounts = ChartOfAccount::with('account')
+        $chartOfAccounts = ChartOfAccount::with(['account', 'limit'])
             ->when($warehouseId !== 'all', function ($query) use ($warehouseId) {
                 $query->where('warehouse_id', $warehouseId);
             })->whereIn('account_id', [1, 2])
