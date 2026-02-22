@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\DB;
 
 use Illuminate\Support\Facades\Log;
 use App\Http\Resources\AccountResource;
+use App\Models\BankAccountLimits;
 
 class JournalController extends Controller
 {
@@ -664,7 +665,7 @@ class JournalController extends Controller
         // --- Perbaikan Kinerja: Pre-fetch data jurnal dan saldo sebelumnya dalam satu/dua kueri ---
 
         // 1. Ambil semua ChartOfAccount yang relevan
-        $chartOfAccounts = ChartOfAccount::with('account')->get();
+        $chartOfAccounts = ChartOfAccount::with(['account', 'limit'])->whereIn('account_id', [1, 2])->get();
 
         Log::info("Found " . $chartOfAccounts->count() . " chart of accounts.");
 
@@ -794,7 +795,10 @@ class JournalController extends Controller
                             ? $totalProfitMonthly[$w->id]->total_fee / $this->countDaysInMonth($endDate)
                             : 0
                         ),
-
+                    'total_limit' => BankAccountLimits::whereHas('chartOfAccount', function ($q) use ($w) {
+                        $q->where('warehouse_id', $w->id);
+                    })
+                        ->sum('limit_amount')
                 ];
             }),
             'totalCash' => $sumtotalCash->sum('balance'),
