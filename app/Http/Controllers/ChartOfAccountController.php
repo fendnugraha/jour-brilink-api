@@ -483,19 +483,59 @@ class ChartOfAccountController extends Controller
 
     public function updateAccountLimit(Request $request, $id)
     {
-        $request->validate([
-            'limit' => 'numeric',
-            'diff' => 'numeric'
+        $validated = $request->validate([
+            'limit' => 'nullable|numeric',
+            'diff'  => 'nullable|numeric'
         ]);
 
         $chartOfAccount = ChartOfAccount::findOrFail($id);
-        $chartOfAccount->limit()->updateOrCreate([
-            'chart_of_account_id' => $chartOfAccount->id
-        ], [
-            'limit_amount' => $request->limit,
-            'diff_amount' => $request->diff
+
+        $data = [];
+
+        if ($request->has('limit')) {
+            $data['limit_amount'] = $validated['limit'];
+        }
+
+        if ($request->has('diff')) {
+            $data['diff_amount'] = $validated['diff'];
+        }
+
+        $chartOfAccount->limit()->updateOrCreate(
+            ['chart_of_account_id' => $chartOfAccount->id],
+            $data
+        );
+
+        return response()->json(['message' => 'Chart of account limit updated successfully.'], 200);
+    }
+
+    public function updateAccountLimitBatch(Request $request)
+    {
+        $validated = $request->validate([
+            'accounts' => 'required|array',
+            'accounts.*.id'   => 'required|exists:chart_of_accounts,id',
+            'accounts.*.diff' => 'required|numeric',
         ]);
 
-        return new ChartOfAccountResource($chartOfAccount, true, "Successfully updated chart of account");
+        Log::info($validated);
+
+        DB::transaction(function () use ($validated) {
+
+            foreach ($validated['accounts'] as $account) {
+
+                $chartOfAccount = ChartOfAccount::find($account['id']);
+
+                $limit = $chartOfAccount->limit()->firstOrCreate([
+                    'chart_of_account_id' => $chartOfAccount->id
+                ]);
+
+                // REPLACE diff (bukan tambah)
+                $limit->diff_amount = $account['diff'];
+                $limit->save();
+            }
+        });
+
+        return response()->json([
+            'message' => 'Batch account diff updated successfully.'
+        ]);
     }
 }
