@@ -338,8 +338,8 @@ class FinanceController extends Controller
 
     public function getFinanceByType($contact, $financeType, Request $request)
     {
-        $start = $request->start ? Carbon::parse($request->start)->startOfDay() : Carbon::now()->startOfDay();
-        $end = $request->end ? Carbon::parse($request->end)->endOfDay() : Carbon::now()->endOfDay();
+        $start = $request->start ? Carbon::parse($request->start)->startOfDay() : Carbon::now()->startOfMonth();
+        $end = $request->end ? Carbon::parse($request->end)->endOfDay() : Carbon::now()->endOfMonth();
         $perPage = $request->per_page ? $request->per_page : 10;
 
         $finance = Finance::with(['contact', 'account'])
