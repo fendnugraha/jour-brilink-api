@@ -14,6 +14,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Http\Resources\AccountResource;
 use App\Services\EmployeeReceivableService;
+use Illuminate\Validation\Rules\Can;
 
 class FinanceController extends Controller
 {
@@ -335,14 +336,19 @@ class FinanceController extends Controller
         return new AccountResource($finance, true, "Successfully fetched finances");
     }
 
-    public function getFinanceByType($contact, $financeType)
+    public function getFinanceByType($contact, $financeType, Request $request)
     {
+        $start = $request->start ? Carbon::parse($request->start)->startOfDay() : Carbon::now()->startOfDay();
+        $end = $request->end ? Carbon::parse($request->end)->endOfDay() : Carbon::now()->endOfDay();
+        $perPage = $request->per_page ? $request->per_page : 10;
+
         $finance = Finance::with(['contact', 'account'])
             ->where(fn($query) => $contact == "All" ?
                 $query : $query->where('contact_id', $contact))
+            ->whereBetween('date_issued', [$start, $end])
             ->where('finance_type', $financeType)
-            ->latest('created_at')
-            ->paginate(10)
+            ->latest('date_issued')
+            ->paginate($perPage)
             ->onEachSide(0);
 
         $financeGroupByContactId = Finance::selectRaw('
