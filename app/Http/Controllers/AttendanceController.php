@@ -237,7 +237,7 @@ class AttendanceController extends Controller
                 'photo'   => null,
                 'time_in' => Carbon::parse($request->time_in)->format('H:i:s') ?? Carbon::parse(now())->format('H:i:s'),
                 'date'    => $request->date ?? now(),
-                'approval_status' => 'Approved'
+                'approval_status' => $request->approval_status ?? 'Approved'
             ]);
 
             DB::commit();
