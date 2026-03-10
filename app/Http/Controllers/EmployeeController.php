@@ -169,14 +169,17 @@ class EmployeeController extends Controller
                     throw new \Exception("Payroll sudah ada untuk salah satu karyawan");
                 }
 
-                $basicSalary = $item['basic_salary'];
+                $basicSalary = $item['basic_salary'] ?? 0;
                 $commission  = $item['commission'] ?? 0;
+                $overtime = $item['overtime'] ?? 0;
+                $employeeReceivable = $item['employee_receivable'] ?? 0;
+                $installmentReceivable = $item['installment_receivable'] ?? 0;
 
                 $totalBonus = collect($item['bonuses'] ?? [])
-                    ->sum('amount') + $item['overtime'];
+                    ->sum('amount') + $overtime;
 
                 $totalDeduction = collect($item['deductions'] ?? [])
-                    ->sum('amount') + $item['employee_receivable'] + $item['installment_receivable'];
+                    ->sum('amount') + $employeeReceivable + $installmentReceivable;
 
                 $grossPay = $basicSalary + $commission + $totalBonus;
                 $netPay   = $grossPay - $totalDeduction;
@@ -213,40 +216,40 @@ class EmployeeController extends Controller
                     ]);
                 }
 
-                if ($item['overtime'] > 0) {
+                if ($overtime > 0) {
                     $payroll->items()->create([
                         'type' => 'allowance',
                         'item_name' => 'Lembur',
-                        'amount' => $item['overtime'],
+                        'amount' => $overtime,
                     ]);
                 }
 
-                if ($item['employee_receivable'] > 0) {
+                if ($employeeReceivable > 0) {
                     $payroll->items()->create([
                         'type' => 'deduction',
                         'item_name' => 'Potong Kasbon',
-                        'amount' => $item['employee_receivable'],
+                        'amount' => $employeeReceivable,
                     ]);
 
                     $service->pay([
                         'contact_id' => $item['contact_id'],
-                        'amount' => $item['employee_receivable'],
+                        'amount' => $employeeReceivable,
                         'date_issued' => $payrollDate,
                         'account_id' => 1,
                         'notes' => 'Potongan kasbon bulan ' . $payrollDate->format('F Y'),
                     ]);
                 }
 
-                if ($item['installment_receivable'] > 0) {
+                if ($installmentReceivable > 0) {
                     $payroll->items()->create([
                         'type' => 'deduction',
                         'item_name' => 'Potong Cicilan',
-                        'amount' => $item['installment_receivable'],
+                        'amount' => $installmentReceivable,
                     ]);
 
                     $service->pay([
                         'contact_id' => $item['contact_id'],
-                        'amount' => $item['installment_receivable'],
+                        'amount' => $installmentReceivable,
                         'date_issued' => $payrollDate,
                         'account_id' => 1,
                         'notes' => 'Potongan kasbon bulan ' . $payrollDate->format('F Y'),

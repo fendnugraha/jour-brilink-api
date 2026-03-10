@@ -797,8 +797,13 @@ class JournalController extends Controller
                         ),
                     'total_limit' => BankAccountLimits::whereHas('chartOfAccount', function ($q) use ($w) {
                         $q->where('warehouse_id', $w->id);
-                    })
-                        ->sum('limit_amount')
+                    })->sum('limit_amount'),
+                    'total_cash_limit' => BankAccountLimits::whereHas('chartOfAccount', function ($q) use ($w) {
+                        $q->where('warehouse_id', $w->id)->where('account_id', 1);
+                    })->sum('limit_amount'),
+                    'total_bank_limit' => BankAccountLimits::whereHas('chartOfAccount', function ($q) use ($w) {
+                        $q->where('warehouse_id', $w->id)->where('account_id', 2);
+                    })->sum('limit_amount'),
                 ];
             }),
             'totalCash' => $sumtotalCash->sum('balance'),
