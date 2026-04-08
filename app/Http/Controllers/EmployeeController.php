@@ -30,7 +30,11 @@ class EmployeeController extends Controller
             'attendances' => function ($q) use ($month, $year) {
                 $q->whereMonth('date', $month)
                     ->whereYear('date', $year);
-            }
+            },
+            'attendancesLastMonth' => function ($q) {
+                $q->whereMonth('date', now()->subMonth()->month)
+                    ->whereYear('date', now()->subMonth()->year);
+            },
         ])->get();
 
         $ratingService = new AttendanceRatingService();
@@ -39,6 +43,11 @@ class EmployeeController extends Controller
             $employee->attendance_rating =
                 $ratingService->calculateFromAttendances(
                     $employee->attendances
+                );
+
+            $employee->attendance_rating_last_month =
+                $ratingService->calculateFromAttendances(
+                    $employee->attendancesLastMonth
                 );
         }
 

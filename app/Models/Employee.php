@@ -23,6 +23,11 @@ class Employee extends Model
         return $this->hasMany(Attendance::class, 'contact_id', 'contact_id');
     }
 
+    public function attendancesLastMonth()
+    {
+        return $this->hasMany(Attendance::class, 'contact_id', 'contact_id');
+    }
+
     public function warnings()
     {
         return $this->hasMany(EmployeeWarning::class);
