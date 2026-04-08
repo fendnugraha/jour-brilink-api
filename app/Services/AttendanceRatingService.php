@@ -9,7 +9,7 @@ class AttendanceRatingService
     protected array $scoreMap = [
         'good' => 10,       // datang paling awal
         'approved' => 9,    // hadir tepat waktu
-        'late' => 2,        // telat (berapa menit pun sama)
+        'late' => 3,        // telat (berapa menit pun sama)
     ];
 
     public function calculateFromAttendances(Collection $attendances): array
@@ -22,7 +22,7 @@ class AttendanceRatingService
                 'good' => 0,
                 'approved' => 0,
                 'late' => 0,
-                'rating' => 0,
+                'rating' => 0.0,
             ];
         }
 
@@ -38,7 +38,7 @@ class AttendanceRatingService
             $totalScore += $count * $this->scoreMap[$status];
         }
 
-        $rating = round(($totalScore / $totalDays) * 2) / 2;
+        $rating = round($totalScore / $totalDays, 1);
 
         return [
             'total_days' => $totalDays,
