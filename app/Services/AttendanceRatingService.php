@@ -9,7 +9,7 @@ class AttendanceRatingService
     protected array $scoreMap = [
         'good' => 10,       // datang paling awal
         'approved' => 9,    // hadir tepat waktu
-        'late' => 3,        // telat (berapa menit pun sama)
+        'late' => 1,        // telat (berapa menit pun sama)
     ];
 
     public function calculateFromAttendances(Collection $attendances): array
