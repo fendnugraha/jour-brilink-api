@@ -23,6 +23,11 @@ class EmployeeController extends Controller
         $month = $request->month ?? now()->month;
         $year = $request->year ?? now()->year;
 
+        $date = Carbon::create($year, $month, 1);
+
+        $lastMonth = $date->copy()->subMonth()->month;
+        $lastYear = $date->copy()->subMonth()->year;
+
         $employees = Employee::with([
             'warningActive',
             'contact:id,name',
@@ -31,9 +36,9 @@ class EmployeeController extends Controller
                 $q->whereMonth('date', $month)
                     ->whereYear('date', $year);
             },
-            'attendancesLastMonth' => function ($q) {
-                $q->whereMonth('date', now()->subMonth()->month)
-                    ->whereYear('date', now()->subMonth()->year);
+            'attendancesLastMonth' => function ($q) use ($lastMonth, $lastYear) {
+                $q->whereMonth('date', $lastMonth)
+                    ->whereYear('date', $lastYear);
             },
         ])->get();
 
