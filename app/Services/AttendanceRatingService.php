@@ -9,7 +9,7 @@ class AttendanceRatingService
     protected array $scoreMap = [
         'good' => 10,       // datang paling awal
         'approved' => 9,    // hadir tepat waktu
-        'overtime' => 2,    // lembur
+        'overtime' => 9,    // lembur
         'late' => 1,        // telat (berapa menit pun sama)
     ];
 
