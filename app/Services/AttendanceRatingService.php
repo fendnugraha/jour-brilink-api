@@ -9,6 +9,7 @@ class AttendanceRatingService
     protected array $scoreMap = [
         'good' => 10,       // datang paling awal
         'approved' => 9,    // hadir tepat waktu
+        'overtime' => 2,    // lembur
         'late' => 1,        // telat (berapa menit pun sama)
     ];
 
@@ -21,6 +22,7 @@ class AttendanceRatingService
                 'total_days' => 0,
                 'good' => 0,
                 'approved' => 0,
+                'overtime' => 0,
                 'late' => 0,
                 'rating' => 0.0,
             ];
@@ -30,6 +32,7 @@ class AttendanceRatingService
             'good' => $attendances->where('approval_status', 'Good')->count(),
             'approved' => $attendances->where('approval_status', 'Approved')->count(),
             'late' => $attendances->where('approval_status', 'Late')->count(),
+            'overtime' => $attendances->where('approval_status', 'Overtime')->count(),
         ];
 
         $totalScore = 0;
@@ -45,6 +48,7 @@ class AttendanceRatingService
             'good' => $counts['good'],
             'approved' => $counts['approved'],
             'late' => $counts['late'],
+            'overtime' => $counts['overtime'],
             'rating' => min($rating, 10), // safety
         ];
     }
