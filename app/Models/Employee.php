@@ -42,4 +42,9 @@ class Employee extends Model
     {
         return $this->hasOne(Warehouse::class, 'contact_id', 'contact_id');
     }
+
+    public function warehouseZone()
+    {
+        return $this->hasOne(WarehouseZone::class);
+    }
 }

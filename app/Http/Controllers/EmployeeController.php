@@ -33,6 +33,7 @@ class EmployeeController extends Controller
             'contact:id,name',
             'contact.employee_receivables_sum',
             'warehouse:contact_id,name,warehouse_zone_id',
+            'warehouseZone',
             'attendances' => function ($q) use ($month, $year) {
                 $q->whereMonth('date', $month)
                     ->whereYear('date', $year);
