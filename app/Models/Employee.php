@@ -37,4 +37,9 @@ class Employee extends Model
     {
         return $this->hasOne(EmployeeWarning::class)->where('is_active', true)->latestOfMany();
     }
+
+    public function warehouse()
+    {
+        return $this->hasOne(Warehouse::class, 'contact_id', 'contact_id');
+    }
 }
