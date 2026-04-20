@@ -781,6 +781,7 @@ class JournalController extends Controller
                 return [
                     'id' => $w->id,
                     'name' => $w->name,
+                    'updated_at' => $w->updated_at,
                     // Filter di sini juga harus menggunakan relasi 'account'
                     'cash' => $chartOfAccounts->filter(function ($coa) use ($w) {
                         return ($coa->account && $coa->account->id === 1 && $coa->warehouse_id === $w->id);

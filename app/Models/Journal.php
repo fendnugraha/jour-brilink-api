@@ -22,6 +22,15 @@ class Journal extends Model
         'cred_code' => 'integer',
     ];
 
+    protected static function booted()
+    {
+        static::created(function ($journal) {
+            if ($journal->warehouse_id) {
+                $journal->warehouse->touch();
+            };
+        });
+    }
+
     public function scopeFilterJournals($query, array $filters)
     {
         $query->when(!empty($filters['search']), function ($query) use ($filters) {
