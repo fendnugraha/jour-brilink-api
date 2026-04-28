@@ -80,8 +80,8 @@ class JournalController extends Controller
         $request->validate([
             'cred_code' => 'required|exists:chart_of_accounts,id',
             'debt_code' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric|min:0',
-            'fee_amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:1',
+            'fee_amount' => 'required|numeric|min:1',
             'description' => 'max:255',
         ]);
 
@@ -225,9 +225,9 @@ class JournalController extends Controller
         $request->validate([
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:1',
             'trx_type' => 'required',
-            'fee_amount' => 'required|numeric|min:0',
+            'fee_amount' => 'required|numeric|min:1',
             'custName' => 'required|regex:/^[a-zA-Z0-9\s]+$/|min:3|max:255',
         ], [
             'debt_code.required' => 'Akun debet harus diisi.',
@@ -297,14 +297,16 @@ class JournalController extends Controller
     public function createVoucher(Request $request)
     {
         $request->validate([
-            'qty' => 'required|numeric',
-            'price' => 'required|numeric',
+            'qty' => 'required|numeric|min:1',
+            'price' => 'required|numeric|min:1',
             'product_id' => 'required',
         ], [
             'qty.required' => 'Jumlah voucher harus diisi.',
             'qty.numeric' => 'Jumlah voucher harus berupa angka.',
+            'qty.min' => 'Jumlah voucher harus lebih besar dari 0.',
             'price.required' => 'Harga voucher harus diisi.',
             'price.numeric' => 'Harga voucher harus berupa angka.',
+            'price.min' => 'Harga voucher harus lebih besar dari 0.',
             'product_id.required' => 'Pilih produk terlebih dahulu.',
         ]);
 
@@ -440,9 +442,9 @@ class JournalController extends Controller
             'date_issued' => 'date',
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id|different:debt_code',
-            'amount' => 'required|numeric|min:0',
+            'amount' => 'required|numeric|min:1',
             'trx_type' => 'required',
-            'admin_fee' => 'numeric|min:0',
+            'admin_fee' => 'numeric|min:1',
         ], [
             'admin_fee.numeric' => 'Biaya admin harus berupa angka.',
             'debt_code.required' => 'Akun debet harus diisi.',
