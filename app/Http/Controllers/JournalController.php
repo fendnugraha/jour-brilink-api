@@ -442,9 +442,9 @@ class JournalController extends Controller
             'date_issued' => 'date',
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'cred_code' => 'required|exists:chart_of_accounts,id|different:debt_code',
-            'amount' => 'required|numeric|min:1',
+            'amount' => 'required|numeric|min:0',
             'trx_type' => 'required',
-            'admin_fee' => 'numeric|min:1',
+            'admin_fee' => 'numeric|min:0',
         ], [
             'admin_fee.numeric' => 'Biaya admin harus berupa angka.',
             'debt_code.required' => 'Akun debet harus diisi.',
@@ -454,6 +454,13 @@ class JournalController extends Controller
             'amount.numeric' => 'Jumlah harus berupa angka.',
             'amount.min' => 'Jumlah minimal adalah 0.',
         ]);
+
+        if ($request->trx_type == "Mutasi Kas" && $request->amount == 0) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Jumlah mutasi kas tidak boleh 0'
+            ], 422);
+        }
 
         $description = $request->description ?? 'Mutasi Kas';
         $hqCashAccount = Warehouse::find(1)->chart_of_account_id;
@@ -546,8 +553,8 @@ class JournalController extends Controller
     {
         $request->validate([
             'cred_code' => 'required|exists:chart_of_accounts,id',
-            'amount' => 'required|numeric',
-            'account_ids' => 'required|array|min:1',
+            'amount' => 'required|numeric|min:0',
+            'account_ids' => 'required|array',
             'account_ids.*' => 'exists:chart_of_accounts,id',
         ], [
             'admin_fee.numeric' => 'Biaya admin harus berupa angka.',
