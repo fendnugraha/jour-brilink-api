@@ -909,6 +909,7 @@ class JournalController extends Controller
                     'warehouse' => $r->warehouse->name,
                     'warehouseId' => $r->warehouse_id,
                     'warehouse_code' => $r->warehouse->code,
+                    'zone_id' => $r->warehouse->warehouse_zone_id,
                     'cash' => $rv->where('debt_code', (int) 2)->where('warehouse_id', '!=', (int) 1)->sum('amount'),
                     'transfer' => $rv->where('trx_type', 'Transfer Uang')->sum('amount'),
                     'tarikTunai' => $rv->where('trx_type', 'Tarik Tunai')->sum('amount'),
