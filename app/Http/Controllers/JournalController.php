@@ -81,7 +81,7 @@ class JournalController extends Controller
             'cred_code' => 'required|exists:chart_of_accounts,id',
             'debt_code' => 'required|exists:chart_of_accounts,id',
             'amount' => 'required|numeric|min:1',
-            'fee_amount' => 'required|numeric|min:1',
+            'fee_amount' => 'required|numeric|min:0',
             'description' => 'max:255',
         ]);
 
@@ -227,7 +227,7 @@ class JournalController extends Controller
             'cred_code' => 'required|exists:chart_of_accounts,id',
             'amount' => 'required|numeric|min:1',
             'trx_type' => 'required',
-            'fee_amount' => 'required|numeric|min:1',
+            'fee_amount' => 'required|numeric|min:0',
             'custName' => 'required|regex:/^[a-zA-Z0-9\s]+$/|min:3|max:255',
         ], [
             'debt_code.required' => 'Akun debet harus diisi.',
