@@ -363,8 +363,8 @@ class EmployeeController extends Controller
         // clone agar tidak mengubah issued_date
         $expiredDate = match ($validated['level']) {
             'SP1' => $issuedDate->copy()->addMonths(3),
-            'SP2' => $issuedDate->copy()->addMonths(6),
-            'SP3' => $issuedDate->copy()->addMonths(6),
+            'SP2' => $issuedDate->copy()->addMonths(3),
+            'SP3' => $issuedDate->copy()->addMonths(3),
         };
 
         EmployeeWarning::create([

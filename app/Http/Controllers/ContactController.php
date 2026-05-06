@@ -127,7 +127,7 @@ class ContactController extends Controller
         ]);
     }
 
-    public function getAllContacts($type = "all")
+    public function getAllContacts(string $type = "all")
     {
         $contacts = Contact::orderBy('name', 'asc')->when($type !== "all", function ($query) use ($type) {
             $query->where('type', $type);
