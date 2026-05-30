@@ -322,7 +322,7 @@ class AttendanceController extends Controller
 
     public function attendanceRating(
         AttendanceRatingService $service,
-        $employeeId,
+        int $employeeId,
         Request $request
     ) {
         return response()->json(

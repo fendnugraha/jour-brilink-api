@@ -50,6 +50,7 @@ class AttendanceRatingService
             'late' => $counts['late'],
             'overtime' => $counts['overtime'],
             'rating' => min($rating, 10), // safety
+            'score' => $totalScore
         ];
     }
 }
