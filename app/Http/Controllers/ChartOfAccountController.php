@@ -315,7 +315,7 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
-    public function getCashBankBalancex($warehouse, $endDate)
+    public function getCashBankBalancex(int $warehouse, string $endDate)
     {
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
         $previousDate = Carbon::parse($endDate)->subDays()->toDateString();
@@ -346,7 +346,7 @@ class ChartOfAccountController extends Controller
         return new ChartOfAccountResource($chartOfAccounts, true, "Successfully fetched chart of accounts");
     }
 
-    public function getCashBankBalance($warehouse, $endDate)
+    public function getCashBankBalance(int $warehouse, string $endDate)
     {
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
         $previousDate = Carbon::parse($endDate)->subDays()->toDateString();

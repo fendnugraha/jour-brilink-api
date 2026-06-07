@@ -769,7 +769,7 @@ class JournalController extends Controller
 
 
         // Ambil warehouse
-        $warehouses = Warehouse::where('status', 1)->orderBy('name')->get();
+        $warehouses = Warehouse::with('zone')->where('status', 1)->orderBy('name')->get();
 
         $totalProfitMonthly = Journal::selectRaw('
         SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee,
@@ -790,6 +790,7 @@ class JournalController extends Controller
                 return [
                     'id' => $w->id,
                     'name' => $w->name,
+                    'zone_id' => $w->zone->id ?? null,
                     'updated_at' => $w->updated_at,
                     // Filter di sini juga harus menggunakan relasi 'account'
                     'cash' => $chartOfAccounts->filter(function ($coa) use ($w) {
