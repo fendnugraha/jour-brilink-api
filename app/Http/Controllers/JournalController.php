@@ -537,7 +537,7 @@ class JournalController extends Controller
 
             return response()->json([
                 'message' => 'Mutasi Kas berhasil',
-                'journal' => $journal->load(['debt', 'cred'])
+                'journal' => $journal->load(['debt.warehouse:id,name', 'cred'])
             ], 201);
         } catch (\Exception $e) {
             DB::rollBack();
