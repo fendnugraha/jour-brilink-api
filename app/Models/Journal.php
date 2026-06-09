@@ -310,7 +310,7 @@ class Journal extends Model
         }
     }
 
-    public static function balancesByWarehouse(int $warehouseId, string $endDate)
+    public static function balancesByWarehouse($warehouseId, string $endDate)
     {
         $endDate = $endDate ? Carbon::parse($endDate)->endOfDay() : Carbon::now()->endOfDay();
         $previousDate = $endDate->copy()->subDay()->toDateString();
