@@ -184,7 +184,7 @@ class WarehouseController extends Controller
 
     public function getAllWarehouses()
     {
-        $warehouses = Warehouse::where('status', 1)->orderBy('name', 'asc')->get();
+        $warehouses = Warehouse::where('status', '!=', 0)->orderBy('name', 'asc')->get();
         return response()->json([
             'success' => true,
             'data' => $warehouses
