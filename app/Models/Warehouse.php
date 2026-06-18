@@ -56,6 +56,7 @@ class Warehouse extends Model
     public static function toggleLockStatusById(int $id)
     {
         // 1. Cari data warehouse berdasarkan ID
+        if ($id == 1) return false;
         $warehouse = self::findOrFail($id);
 
         // 2. Hitung status baru
