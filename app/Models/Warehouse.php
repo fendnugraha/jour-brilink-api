@@ -52,4 +52,20 @@ class Warehouse extends Model
     {
         return $this->hasMany(Warehouse::class);
     }
+
+    public static function toggleLockStatusById(int $id)
+    {
+        // 1. Cari data warehouse berdasarkan ID
+        $warehouse = self::findOrFail($id);
+
+        // 2. Hitung status baru
+        $newStatus = $warehouse->status === 1 ? 3 : ($warehouse->status === 3 ? 1 : $warehouse->status);
+
+        // 3. Update statusnya
+        $warehouse->status = $newStatus;
+        $warehouse->save();
+
+        // 4. Kembalikan data warehouse yang sudah di-update
+        return $warehouse;
+    }
 }

@@ -211,6 +211,8 @@ class AttendanceController extends Controller
                 'approval_status' => $status
             ]);
 
+            Warehouse::toggleLockStatusById($warehouseId);
+
             DB::commit();
 
             return response()->json(['success' => true]);

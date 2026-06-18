@@ -246,4 +246,19 @@ class WarehouseController extends Controller
             ], 500);
         }
     }
+
+    public function changeLockStatus(Warehouse $warehouse)
+    {
+        // Mengubah status: jika 1 jadi 3, jika 3 jadi 1, selain itu tetap
+        $newStatus = $warehouse->status === 1 ? 3 : ($warehouse->status === 3 ? 1 : $warehouse->status);
+
+        $warehouse->status = $newStatus;
+        $warehouse->save(); // Lebih efisien untuk single model update
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Warehouse ' . ($newStatus === 1 ? 'unlocked' : 'locked'),
+            'data' => $warehouse
+        ], 200); // 200 OK bisa opsional ditulis karena ini nilai default
+    }
 }

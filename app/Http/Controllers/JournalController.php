@@ -769,7 +769,7 @@ class JournalController extends Controller
 
 
         // Ambil warehouse
-        $warehouses = Warehouse::with('zone')->where('status', 1)->orderBy('name')->get();
+        $warehouses = Warehouse::with('zone')->where('status', '!=', 0)->orderBy('name')->get();
 
         $totalProfitMonthly = Journal::selectRaw('
         SUM(CASE WHEN fee_amount > 0 THEN fee_amount ELSE 0 END) as total_fee,
