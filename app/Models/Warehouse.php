@@ -69,4 +69,17 @@ class Warehouse extends Model
         // 4. Kembalikan data warehouse yang sudah di-update
         return $warehouse;
     }
+
+    public static function changeLockStatus(int $id, int $status)
+    {
+        $warehouse = self::findOrFail($id);
+        if ($warehouse->id == 1) return;
+        // Mengubah status: jika 1 jadi 3, jika 3 jadi 1, selain itu tetap
+        $newStatus = $status;
+
+        $warehouse->status = $newStatus;
+        $warehouse->save(); // Lebih efisien untuk single model update
+
+        return $warehouse;
+    }
 }

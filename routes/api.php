@@ -18,6 +18,7 @@ use App\Http\Controllers\TransactionController;
 use App\Http\Controllers\WarehouseZoneController;
 use App\Http\Controllers\ChartOfAccountController;
 use App\Http\Controllers\ProductCategoryController;
+use App\Models\Warehouse;
 
 Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('/user', function (Request $request) {
@@ -62,6 +63,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
 
     Route::apiResource('warehouse', WarehouseController::class);
     Route::get('get-all-warehouses', [WarehouseController::class, 'getAllWarehouses']);
+    Route::put('toggle-lock-status-by-id/{id}', function (Warehouse $warehouse, $id) {
+        return $warehouse->toggleLockStatusById($id);
+    });
 
     //journals
     Route::apiResource('journals', JournalController::class);

@@ -247,14 +247,14 @@ class WarehouseController extends Controller
         }
     }
 
-    public function changeLockStatus(Warehouse $warehouse)
+    public function changeLockStatus(Warehouse $warehouse, Request $request)
     {
         if ($warehouse->id == 1) return response()->json([
             'success' => false,
             'message' => 'Cannot lock default warehouse'
         ], 400);
         // Mengubah status: jika 1 jadi 3, jika 3 jadi 1, selain itu tetap
-        $newStatus = $warehouse->status === 1 ? 3 : ($warehouse->status === 3 ? 1 : $warehouse->status);
+        $newStatus = $request->status;
 
         $warehouse->status = $newStatus;
         $warehouse->save(); // Lebih efisien untuk single model update
