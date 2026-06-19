@@ -791,6 +791,7 @@ class JournalController extends Controller
                     'id' => $w->id,
                     'name' => $w->name,
                     'zone_id' => $w->zone->id ?? null,
+                    'status' => $w->status,
                     'updated_at' => $w->updated_at,
                     // Filter di sini juga harus menggunakan relasi 'account'
                     'cash' => $chartOfAccounts->filter(function ($coa) use ($w) {
