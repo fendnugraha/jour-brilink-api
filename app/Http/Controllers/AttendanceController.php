@@ -103,7 +103,7 @@ class AttendanceController extends Controller
             'zone'
         ])
             ->where('id', '!=', 1)
-            ->where('status', 1)
+            ->where('status', '!=', 0)
             ->orderBy('name', 'asc')
             ->get();
 
