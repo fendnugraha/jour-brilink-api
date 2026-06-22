@@ -122,6 +122,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     Route::get('get-warehouse-attendance/{date}', [AttendanceController::class, 'getWarehouseAttendance']);
     Route::get('get-attendance-monthly/{date}', [AttendanceController::class, 'getAttendanceMonthly']);
     Route::put('change-lock-status/{warehouse}', [WarehouseController::class, 'changeLockStatus']);
+    Route::get('check-warehouse-status/{warehouse}', [WarehouseController::class, 'checkWarehouseStatus']);
 
     //zone
     Route::apiResource('zones', WarehouseZoneController::class);

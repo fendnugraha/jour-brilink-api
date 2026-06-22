@@ -265,4 +265,12 @@ class WarehouseController extends Controller
             'data' => $warehouse
         ], 200); // 200 OK bisa opsional ditulis karena ini nilai default
     }
+
+    public function checkWarehouseStatus(Warehouse $warehouse)
+    {
+        return response()->json([
+            'success' => true,
+            'data' => $warehouse
+        ], 200);
+    }
 }
