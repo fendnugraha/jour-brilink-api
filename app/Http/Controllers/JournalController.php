@@ -244,7 +244,7 @@ class JournalController extends Controller
         ]);
         $description = $request->description ? $request->description . ' - ' . strtoupper($request->custName) : $request->trx_type . ' - ' . strtoupper($request->custName);
 
-        $warehouseStatusCheck = Warehouse::find(auth()->user()->warehouse_id);
+        $warehouseStatusCheck = Warehouse::find(auth()->user()->role->warehouse_id);
         if ($warehouseStatusCheck->status === 3 && auth()->user()->role->role !== 'Super Admin') {
             return response()->json([
                 'success' => false,
