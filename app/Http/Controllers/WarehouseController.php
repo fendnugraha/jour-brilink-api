@@ -2,14 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
+use App\Http\Resources\ChartOfAccountResource;
+use App\Jobs\ProcessWarehouseLock;
+use App\Models\ChartOfAccount;
 use App\Models\Journal;
 use App\Models\Warehouse;
 use Illuminate\Http\Request;
-use App\Models\ChartOfAccount;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Http\Controllers\Controller;
-use App\Http\Resources\ChartOfAccountResource;
 
 class WarehouseController extends Controller
 {
@@ -74,7 +75,7 @@ class WarehouseController extends Controller
     /**
      * Display the specified resource.
      */
-    public function show($id)
+    public function show(int $id)
     {
         $warehouse = Warehouse::with('ChartOfAccount')->find($id);
 
@@ -249,21 +250,39 @@ class WarehouseController extends Controller
 
     public function changeLockStatus(Warehouse $warehouse, Request $request)
     {
-        if ($warehouse->id == 1) return response()->json([
-            'success' => false,
-            'message' => 'Cannot lock default warehouse'
-        ], 400);
-        // Mengubah status: jika 1 jadi 3, jika 3 jadi 1, selain itu tetap
+        if ($warehouse->id == 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot lock default warehouse'
+            ], 400);
+        }
+
         $newStatus = $request->status;
 
+        // Ambil nilai delay (misal kita sepakati satuannya adalah MENIT, jadi inputnya angka 5)
+        $delayInMinutes = $request->delay ?? 0;
+
+        if ($delayInMinutes > 0) {
+            // 🔥 JIKA ADA DELAY: Lempar ke sistem antrean server, tunda selama 5 menit
+            ProcessWarehouseLock::dispatch($warehouse->id, $newStatus)->delay(now()->addMinutes($delayInMinutes));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Proses penguncian dijadwalkan otomatis dalam ' . $delayInMinutes . ' menit.',
+                'delayed' => true
+            ], 200);
+        }
+
+        // JIKA TIDAK ADA DELAY (Normal): Langsung eksekusi kunci detik itu juga
         $warehouse->status = $newStatus;
-        $warehouse->save(); // Lebih efisien untuk single model update
+        $warehouse->save();
 
         return response()->json([
             'success' => true,
             'message' => 'Warehouse ' . ($newStatus === 1 ? 'unlocked' : 'locked'),
-            'data' => $warehouse
-        ], 200); // 200 OK bisa opsional ditulis karena ini nilai default
+            'data' => $warehouse,
+            'delayed' => false
+        ], 200);
     }
 
     public function checkWarehouseStatus(Warehouse $warehouse)

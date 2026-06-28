@@ -160,6 +160,13 @@ class JournalController extends Controller
      */
     public function destroy(Journal $journal)
     {
+        $warehouseStatusCheck = Warehouse::find($journal->warehouse_id);
+        if ($warehouseStatusCheck->status === 3 && auth()->user()->role->role !== 'Super Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus journal. Gudang sedang di tutup.'
+            ], 400);
+        }
         $transactionsExist = $journal->transaction()->exists();
         // if ($transactionsExist) {
         //     return response()->json([
@@ -237,6 +244,14 @@ class JournalController extends Controller
         ]);
         $description = $request->description ? $request->description . ' - ' . strtoupper($request->custName) : $request->trx_type . ' - ' . strtoupper($request->custName);
 
+        $warehouseStatusCheck = Warehouse::find(auth()->user()->warehouse_id);
+        if ($warehouseStatusCheck->status === 3 && auth()->user()->role->role !== 'Super Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus journal. Gudang sedang di tutup.'
+            ], 400);
+        }
+
         if (Carbon::parse($request->date_issued)->lt(Carbon::now()->startOfDay()) && auth()->user()->role->role !== 'Super Admin') {
             return response()->json([
                 'success' => false,
@@ -309,6 +324,14 @@ class JournalController extends Controller
             'price.min' => 'Harga voucher harus lebih besar dari 0.',
             'product_id.required' => 'Pilih produk terlebih dahulu.',
         ]);
+
+        $warehouseStatusCheck = Warehouse::find(auth()->user()->role->warehouse_id);
+        if ($warehouseStatusCheck->status === 3 && auth()->user()->role->role !== 'Super Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus journal. Gudang sedang di tutup.'
+            ], 400);
+        }
 
         $journal = new Journal();
         // $modal = $this->modal * $this->qty;
@@ -389,6 +412,14 @@ class JournalController extends Controller
             'price.numeric' => 'Harga deposit harus berupa angka.',
             'price.gte' => 'Harga jual harus lebih besar atau sama dengan harga modal.',
         ]);
+
+        $warehouseStatusCheck = Warehouse::find(auth()->user()->role->warehouse_id);
+        if ($warehouseStatusCheck->status === 3 && auth()->user()->role->role !== 'Super Admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menghapus journal. Gudang sedang di tutup.'
+            ], 400);
+        }
 
         if ($request->cost > $request->price) {
             return response()->json([
